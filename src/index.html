@@ -35,18 +35,18 @@
 
 <body>
 
-    <div class="container" data-ng-app="peddler" data-ng-controller="peddlerController as peddle" data-ng-init="peddle.init()">
-        <div ng-click="peddle.clicker()">
+    <div class="container" data-ng-app="peddler" data-ng-controller="peddlerController as p" data-ng-init="init()">
+        <div ng-click="clicker()">
         	<p>Clicked: {{ peddle.obj.clicks }} times</p>
         	<p>Pedalled: {{ peddle.obj.pedals }}</p>
         	<p>Distance: {{ peddle.obj.distance }}</p>
         </div>
 
-        <div data-ng-click="peddle.save()">
+        <div data-ng-click="save()">
         	Save
         </div>
         
-        <div data-ng-click="peddle.deleteSave()">
+        <div data-ng-click="deleteSave()">
         	Delete local save
         </div>
     </div>

@@ -1,47 +1,47 @@
 /* globals angular */
 
 //angular.module('peddler', []).controller('peddlerController',function($scope,$http,$window,$timeout,$compile){
-angular.module('peddler', []).controller('peddlerController',function() {
-	this.obj = {
+angular.module('peddler', []).controller('peddlerController',function($scope,$timeout) {
+	$scope.obj = {
 		'clicks':0, //how many times clicked
 		'pedals':0, //based on times clicked and extras
 		'distance':0, //total distance covered, based on pedals
 	};
 
 	//on load, check localstorage for previous save
-	this.init = function(){
+	$scope.init = function(){
 		var saved = localStorage.getItem('peddler');
 		console.log(saved);
-		if(saved.length){
+		if(saved !== null){
 			console.log('loading');
 			saved = JSON.parse(saved);
-			this.obj = saved;
+			$scope.obj = saved;
 		}
 
 		$timeout(function(){
 			console.log('timeout done');
 		},2000);
-		
+
 	};
 
 	//save all data to local storage
-	this.save = function(){
+	$scope.save = function(){
 		console.log('saving');
 		localStorage.setItem('peddler', JSON.stringify(this.obj));
 	};
 
 	//clear localstorage
-	this.deleteSave = function(){
+	$scope.deleteSave = function(){
 		console.log('delete');
 		localStorage.setItem('peddler', '');
 	};
 
-	this.clicker = function(){
+	$scope.clicker = function(){
 		this.obj.clicks++;
 		console.log('click');
 	};
 	
-	this.loop = function(){
+	$scope.loop = function(){
 
 	};
 });
