@@ -35,20 +35,20 @@
 
 <body>
 
-    <div class="container" data-ng-app="peddler" data-ng-controller="peddlerController as p" data-ng-init="p.init()">
-        <div data-ng-click="p.clicker()">
-        	<p>Clicked: {{ p.obj.clicks }} times</p>
-        	<p>Pedalled: {{ p.obj.pedals }}</p>
-        	<p>Distance: {{ p.obj.distance }}</p>
+    <div class="container" data-ng-app="peddler" data-ng-controller="peddlerController as p" data-ng-init="init()">
+        <div data-ng-click="clicker()">
+        	<p>Clicked: {{ obj.clicks }} times</p>
+        	<p>Distance: {{ obj.distance }}</p>
+        	<p>Time: {{ obj.totaltime }}</p>
         </div>
 
-        <div data-ng-click="p.save()">
-        	Save
-        </div>
+        <span class="btn" data-ng-click="save()">Save</span>
+        <span class="btn" data-ng-click="deleteSave()">Delete save</span>
         
-        <div data-ng-click="p.deleteSave()">
-        	Delete local save
-        </div>
+        <span class="btn" data-ng-click="setTimeSpeed(1)">x1</span>
+        <span class="btn" data-ng-click="setTimeSpeed(2)">x2</span>
+        <span class="btn" data-ng-click="setTimeSpeed(10)">x10</span>
+        <span class="btn" data-ng-click="setTimeSpeed(100)">x100</span>
     </div>
 
     <script src="static/bower_components/angular/angular.min.js"></script>
