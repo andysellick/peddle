@@ -6,10 +6,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'clicks':0, //how many times clicked
 		'pedals':0, //based on times clicked and extras
 		'distance':0, //total distance covered, based on pedals
-		'seconds':0, 
+		'seconds':0,
 		'totaltime':0,
 		'timespeed':1,
+		'pause':0
 	};
+	var promise;
 
 	//on load, check localstorage for previous save
 	$scope.init = function(){
@@ -20,9 +22,34 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			saved = JSON.parse(saved);
 			$scope.obj = saved;
 		}
-		$interval(function(){
+		if(!$scope.obj.pause){
+			$scope.start();
+		}
+	};
+
+	//start timing interval
+	$scope.start = function(){
+		$scope.stop();
+		promise = $interval(function(){
 			$scope.loop();
 		},1000);
+	};
+
+	//stop timing interval
+	$scope.stop = function(){
+		$interval.cancel(promise);
+	};
+
+	//function called on pause button
+	$scope.pause = function(){
+		if($scope.obj.pause){
+			$scope.start();
+			$scope.obj.pause = 0;
+		}
+		else {
+			$scope.stop();
+			$scope.obj.pause = 1;
+		}
 	};
 
 	//save all data to local storage
@@ -41,7 +68,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.obj.clicks++;
 		console.log('click');
 	};
-	
+
 	$scope.loop = function(){
 		$scope.obj.seconds += (1 * $scope.obj.timespeed);
 		var totaltime = $scope.obj.seconds;
