@@ -36,11 +36,15 @@
 <body>
 
     <div class="container" data-ng-app="peddler" data-ng-controller="peddlerController as p" data-ng-init="init()">
-        <div data-ng-click="clicker()">
-        	<p>Clicked: {{ obj.clicks }} times</p>
-        	<p>Distance: {{ obj.distance }}</p>
-        	<p>Time: {{ obj.totaltime }}</p>
-        </div>
+		<p ng-repeat="item in gear">
+			<label><input type="checkbox" data-ng-checked="checkGearPresent(item.id)" data-ng-click="addGear(item.id)"/> {{ item.id }} {{ item.name }}</label>
+		</p>
+		<p>Total weight: {{ weight }}</p>
+    	<hr/>
+    	<p>Speed: </p>
+		<p>Distance: {{ obj.distance }}</p>
+		<hr/>
+		<p>Time: {{ obj.totaltime }}</p>
 
         <span class="btn" data-ng-click="save()">Save</span>
         <span class="btn" data-ng-click="deleteSave()">Delete save</span>

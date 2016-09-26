@@ -4,11 +4,10 @@
 angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
 	//all these variables get saved
 	$scope.obj = {
-		'clicks':0, //how many times clicked FIXME not in use
-		'pedals':0, //based on times clicked and extras FIXME not in use
 		'distance':0, //total distance covered, based on pedals
 		'seconds':0,
 		'totaltime':0,
+		'speed':0,
 		'timespeed':1,
 		'pause':0,
 		'bike': {
@@ -43,6 +42,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			'weight':2,
 		}
 	];
+	$scope.weight = 0;
 
 	//on load, check localstorage for previous save
 	$scope.init = function(){
@@ -56,7 +56,13 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		if(!$scope.obj.pause){
 			$scope.start();
 		}
-		$scope.calculateSpeed();
+		$scope.recalcStuff();
+	};
+
+	//general single function to call if we change gear, weather, etc.
+	$scope.recalcStuff = function(){
+		$scope.calcWeight();
+		$scope.calcSpeed();
 	};
 
 	var promise;
@@ -96,14 +102,42 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		console.log('delete');
 		localStorage.setItem('peddler', '');
 	};
-
-	$scope.clicker = function(){
-		$scope.obj.clicks++;
-		console.log('click');
+	
+	//look in the gear to see if a particular piece of gear equipped
+	$scope.checkGearPresent = function(id){
+		for(var i = 0; i < $scope.obj.gear.length; i++){
+			if($scope.obj.gear[i].id === id){
+				return true;
+			}
+		}
+		return false;
+	};
+	//given a gear id, add or remove it from the equipped gear
+	$scope.addGear = function(id){
+		var found = 0;
+		var foundlocation = 0;
+		for(var i = 0; i < $scope.obj.gear.length; i++){
+			if($scope.obj.gear[i].id === id){
+				found = 1;
+				foundlocation = i;
+				break;
+			}
+		}
+		//gear exists, unequip
+		if(found){
+			$scope.obj.gear.splice(foundlocation,1);
+		}
+		//gear is not equipped, equip
+		else {
+			$scope.obj.gear.push({'id':id,'condition':1});
+		}
+		$scope.recalcStuff();
 	};
 
 	//main loop, increases time
 	$scope.loop = function(){
+		//autosave
+
 		//calculate time so far
 		$scope.obj.seconds += (1 * $scope.obj.timespeed);
 		var totaltime = $scope.obj.seconds;
@@ -115,7 +149,37 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		totaltime -= minutes * 60;
 		var seconds = totaltime % 60;
 		$scope.obj.totaltime = days + ' days, ' + hours + ' hours, ' + minutes + ' minutes, ' + seconds + ' seconds';
-		//calculate distance
+		
+		//increment distance, based on speed
+
+		//check for status
+		/*
+			reduce energy level, altered by medical condition, overall weight
+			reduce food level
+			reduce bike status/health
+			improve some health conditions
+			reduce some health conditions
+			store a day in seconds then use to create countdown variables, when zero do something 
+				e.g. $scope.day = 86400, $scope.wear.bike = $scope.day * 3, loop through each, reduce by 1, if zero do something
+		*/
+
+		//check for random events
+		/*
+			don't do this every second
+			check for:
+				standard events e.g. puncture, accident
+				country specific events e.g. altitude sickness, bandits
+				navigation choice events
+			only do one event at a time
+			should all events pause time?
+
+			after event choice, need to recalculate
+				gear weight
+				bike weight
+				bike condition
+				energy level
+				health/injury level
+		*/
 	};
 
 	//controls time speed
@@ -124,7 +188,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	};
 	
 	//work out the speed that you should be currently travelling at
-	$scope.calculateSpeed = function(){
+	$scope.calcWeight = function(){
 		var totalweight = 0;
 		for(var i = 0; i < $scope.obj.gear.length; i++){
 			var curritem = $scope.obj.gear[i];
@@ -135,6 +199,28 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				}
 			}
 		}
-		console.log('Total weight = ',totalweight);
+		//console.log('Total weight = ',totalweight);
+		$scope.weight = totalweight;
+	};
+	
+	$scope.calcSpeed = function(){
+		//add temperature as contributing factor
+		//add clothing as gear - heavier clothing warmer, but more drag
+
+		//calculate speed
+		/*
+			assume base speed, e.g. 20mph
+
+			based on:
+				gear weight
+				bike weight
+				bike condition
+				energy level
+				health/injury level
+				tyre pressure
+				wind strength/direction and drag
+			should be able to come up with a distance per second amount, weighted by these factors, that we then add to total distance
+		*/
+
 	};
 });
