@@ -4,10 +4,14 @@
 angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
 	//all these variables get saved
 	$scope.obj = {
-		'distance':0, //total distance covered, based on pedals
+		'distancem':0, //distance covered, metres
+		'distancekm':0, 
+		'distancemi':0,
 		'seconds':0,
-		'totaltime':0,
-		'speed':0,
+		'totaltime':0, //human readable form of time taken
+		'speedm':0,
+		'speedkmph':0,
+		'speedmph':0,
 		'timespeed':1,
 		'pause':0,
 		'bike': {
@@ -43,9 +47,13 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 	];
 	$scope.weight = 0;
+	$scope.oneday = 86400; //number of seconds in one day
+	$scope.onehour = 3600; //number of seconds in an hour
+
 
 	//on load, check localstorage for previous save
 	$scope.init = function(){
+		//$scope.obj.speedm = 5.36448; //12mph is 5.36448 metres per second, 30kmph is 8.3333 metres per second, 20mph is about 9 metres per second
 		var saved = localStorage.getItem('peddler');
 		console.log(saved);
 		if(saved !== null && saved.length > 0){ //firefox and chrome seem to handle this differently
@@ -149,8 +157,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		totaltime -= minutes * 60;
 		var seconds = totaltime % 60;
 		$scope.obj.totaltime = days + ' days, ' + hours + ' hours, ' + minutes + ' minutes, ' + seconds + ' seconds';
-		
+
 		//increment distance, based on speed
+		$scope.obj.distancem = $scope.obj.distancem + ($scope.obj.speedm * $scope.obj.timespeed);
+		$scope.obj.distancekm = Math.floor(($scope.obj.distancem / 1000) * 10) / 10; //to one decimal place
+		$scope.obj.distancemi = Math.floor(($scope.obj.distancekm / 1.6) * 10) / 10;
 
 		//check for status
 		/*
@@ -203,13 +214,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.weight = totalweight;
 	};
 	
+	//should return metres to travel per second
 	$scope.calcSpeed = function(){
 		//add temperature as contributing factor
 		//add clothing as gear - heavier clothing warmer, but more drag
 
 		//calculate speed
 		/*
-			assume base speed, e.g. 20mph
+			assume base speed, e.g. 20mph / 32kmph (10 miles approx 16km)
 
 			based on:
 				gear weight
@@ -221,6 +233,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				wind strength/direction and drag
 			should be able to come up with a distance per second amount, weighted by these factors, that we then add to total distance
 		*/
-
+		$scope.obj.speedkmph = Math.round(($scope.obj.speedm / 1000) * 3600);
+		$scope.obj.speedmph = Math.round($scope.obj.speedkmph / 1.60934);
+	};
+	
+	$scope.changeSpeed = function(changeby){
+		$scope.obj.speedm += changeby;
+		$scope.calcSpeed();
 	};
 });

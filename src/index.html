@@ -41,18 +41,21 @@
 		</p>
 		<p>Total weight: {{ weight }}</p>
     	<hr/>
-    	<p>Speed: </p>
-		<p>Distance: {{ obj.distance }}</p>
+    	<p>Speed: {{ obj.speedkmph }}kph {{ obj.speedmph }}mph ({{ obj.speedm | number:0 }}m per second)</p>
+		<p>Distance: {{ obj.distancekm }}km {{ obj.distancemi }} miles ({{ obj.distancem | number:0 }} metres)</p>
+		<p>Current destination: </p>
+		<span class="btn" data-ng-click="changeSpeed(-1)">Decrease speed</span>
+		<span class="btn" data-ng-click="changeSpeed(1)">Increase speed</span>
 		<hr/>
 		<p>Time: {{ obj.totaltime }}</p>
 
         <span class="btn" data-ng-click="save()">Save</span>
         <span class="btn" data-ng-click="deleteSave()">Delete save</span>
         
-        <span class="btn" data-ng-click="setTimeSpeed(1)">x1</span>
-        <span class="btn" data-ng-click="setTimeSpeed(2)">x2</span>
-        <span class="btn" data-ng-click="setTimeSpeed(10)">x10</span>
-        <span class="btn" data-ng-click="setTimeSpeed(100)">x100</span>
+        <span data-ng-class="obj.timespeed == 1 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(1)">x1</span>
+        <span data-ng-class="obj.timespeed == 2 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(2)">x2</span>
+        <span data-ng-class="obj.timespeed == 10 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(10)">x10</span>
+        <span data-ng-class="obj.timespeed == 100 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(100)">x100</span>
         
         <span class="btn" data-ng-click="pause()">{{ obj.pause === 0 ? "Pause" : "Resume" }}</span>
     </div>
