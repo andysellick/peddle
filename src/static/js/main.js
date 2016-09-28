@@ -1,4 +1,4 @@
-/* globals angular */
+/* globals angular, dests */
 
 //angular.module('peddler', []).controller('peddlerController',function($scope,$http,$window,$timeout,$compile){
 angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
@@ -7,6 +7,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'distancem':0, //distance covered, metres
 		'distancekm':0, 
 		'distancemi':0,
+		'currdest':1, //keeps track of which destination we're currently heading to
+		'currdestdist':0,
 		'seconds':0,
 		'totaltime':0, //human readable form of time taken
 		'speedm':0,
@@ -46,6 +48,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			'weight':2,
 		}
 	];
+
 	$scope.weight = 0;
 	$scope.oneday = 86400; //number of seconds in one day
 	$scope.onehour = 3600; //number of seconds in an hour
@@ -64,6 +67,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		if(!$scope.obj.pause){
 			$scope.start();
 		}
+		//set up destination stuff
+		$scope.dests = dests;
+		$scope.prevdest = Math.max(0,$scope.obj.currdest - 1);
+		$scope.prevdest = $scope.dests[$scope.prevdest].name;
+		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
+
 		$scope.recalcStuff();
 	};
 
