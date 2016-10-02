@@ -41,11 +41,11 @@
 		</p>
 		<p>Total weight: {{ weight }}</p>
     	<hr/>
-    	<p>Speed: {{ obj.speedkmph }}kph {{ obj.speedmph }}mph ({{ obj.speedm | number:0 }}m per second)</p>
-		<p>Distance: {{ obj.distancekm }}km {{ obj.distancemi }} miles ({{ obj.distancem | number:0 }} metres)</p>
+    	<p>Speed: {{ obj.speedkmph }}kph {{ obj.speedmph }}mph </p>
+		<p>Distance: {{ obj.distancekm }}km {{ obj.distancemi }} miles </p>
 		<p>Previous destination: {{ prevdest }}</p>
 		<p>Current destination: {{ currdest }}</p>
-		<p>Distance to current destination: {{ obj.currdestdist }}</p>
+		<p>Distance to current destination: {{ obj.currdestdist }}km</p>
 
 		<span class="btn" data-ng-click="changeSpeed(-1)">Decrease speed</span>
 		<span class="btn" data-ng-click="changeSpeed(1)">Increase speed</span>

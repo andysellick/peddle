@@ -4,14 +4,14 @@
 angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
 	//all these variables get saved
 	$scope.obj = {
-		'distancem':0, //distance covered, metres
+		//'distancem':0, //distance covered, metres
 		'distancekm':0, 
 		'distancemi':0,
 		'currdest':1, //keeps track of which destination we're currently heading to
 		'currdestdist':-1,
 		'seconds':0,
 		'totaltime':0, //human readable form of time taken
-		'speedm':0,
+		//'speedm':0,
 		'speedkmph':0,
 		'speedmph':0,
 		'timespeed':1,
@@ -69,15 +69,19 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 		//set up destination stuff
 		$scope.dests = dests;
+		$scope.checkDests();
+
+		$scope.recalcStuff();
+	};
+	
+	$scope.checkDests = function(){
   		$scope.prevdest = Math.max(0,$scope.obj.currdest - 1);
 	    $scope.prevdest = $scope.dests[$scope.prevdest].name;
   		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
   		if($scope.obj.currdestdist === -1){
             $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
         }
-
-		$scope.recalcStuff();
-	};
+    };
 
 	//general single function to call if we change gear, weather, etc.
 	$scope.recalcStuff = function(){
@@ -174,21 +178,24 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		var seconds = totaltime % 60;
 		$scope.obj.totaltime = days + ' days, ' + hours + ' hours, ' + minutes + ' minutes, ' + seconds + ' seconds';
 		
-		console.log('currdest',$scope.obj.currdest);
+		//console.log('currdest',$scope.obj.currdest);
 		if($scope.obj.currdestdist === 0){
+            console.log($scope.obj.currdestdist,'changing to new dest');
             $scope.obj.currdest++;
+            $scope.checkDests();
             $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
+        }
+        else {
+            console.log($scope.obj.currdestdist);
         }
 
 		//increment distance, based on speed
-		var newdist = $scope.obj.speedm * $scope.obj.timespeed; //distance in m we've travelled since last
-		$scope.obj.distancem = $scope.obj.distancem + newdist; //add to total m travelled
+		var newdist = ($scope.obj.speedkmph / 1000) * $scope.obj.timespeed; //distance in km we've travelled since last
+		console.log('newdist',newdist);
+		$scope.obj.distancekm = $scope.oneDecimal($scope.obj.distancekm + newdist); //add to total travelled
 
-		$scope.obj.currdestdist = Math.max(0,$scope.obj.currdestdist - newdist); //FIXME broken
-		$scope.obj.currdestdist = $scope.oneDecimal($scope.obj.currdestdist);
-
-		$scope.obj.distancekm = Math.floor(($scope.obj.distancem / 1000) * 10) / 10; //convert m travelled to km travelled
-		$scope.obj.distancemi = Math.floor(($scope.obj.distancekm / 1.6) * 10) / 10; //convert km travelled to miles travelled
+		$scope.obj.currdestdist = Math.max(0,$scope.oneDecimal($scope.obj.currdestdist - newdist));
+		$scope.obj.distancemi = $scope.oneDecimal($scope.obj.distancekm / 1.6); //convert km travelled to miles travelled
 
 		//check for status
 		/*
@@ -260,12 +267,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				wind strength/direction and drag
 			should be able to come up with a distance per second amount, weighted by these factors, that we then add to total distance
 		*/
-		$scope.obj.speedkmph = Math.round(($scope.obj.speedm / 1000) * 3600);
-		$scope.obj.speedmph = Math.round($scope.obj.speedkmph / 1.60934);
+		//$scope.obj.speedkmph = Math.round(($scope.obj.speedm / 1000) * 3600);
+		$scope.obj.speedkmph = $scope.oneDecimal($scope.obj.speedkmph);
+		$scope.obj.speedmph = $scope.oneDecimal(Math.round($scope.obj.speedkmph / 1.60934));
 	};
 	
 	$scope.changeSpeed = function(changeby){
-		$scope.obj.speedm += changeby;
+        //console.log($scope.obj.speedkmph,changeby);
+		$scope.obj.speedkmph += changeby;
 		$scope.calcSpeed();
 	};
 });
