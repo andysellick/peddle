@@ -75,10 +75,21 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.recalcStuff();
 	};
 	
-	$scope.checkDests = function(){
+	//initialise and switch destinations
+	$scope.checkDests = function(increment){
+		if(increment){
+            $scope.obj.currdest++;
+            $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
+            if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){
+				console.log('type:',$scope.dests[$scope.obj.currdest].type);
+				//if type, draw polyline
+				//if not, draw directions
+			}
+		}
   		$scope.prevdest = Math.max(0,$scope.obj.currdest - 1);
 	    $scope.prevdest = $scope.dests[$scope.prevdest].name;
   		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
+  		$scope.currcountry = $scope.dests[$scope.obj.currdest].loc;
   		if($scope.obj.currdestdist === -1){
             $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
         }
@@ -178,18 +189,15 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		totaltime -= minutes * 60;
 		var seconds = totaltime % 60;
 		$scope.obj.totaltime = days + ' days, ' + hours + ' hours, ' + minutes + ' minutes, ' + seconds + ' seconds';
-		
+
 		//console.log('currdest',$scope.obj.currdest);
-		if($scope.obj.currdestdist === 0){
-            console.log($scope.obj.currdestdist,'changing to new dest');
-            $scope.obj.currdest++;
-            $scope.checkDests();
-            $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
+		if($scope.obj.actualcurrdestdist === 0){
+            $scope.checkDests(1);
         }
 
 		//increment distance, based on speed
 		var newdist = ($scope.obj.speedkmph / 3600) * $scope.obj.timespeed; //distance in km we've travelled since last
-		console.log('newdist',newdist);
+		//console.log('newdist',newdist);
 		$scope.obj.actualdistkm = $scope.obj.actualdistkm + newdist; //add to total travelled
 
 		$scope.obj.distancemi = $scope.oneDecimal($scope.obj.actualdistkm / 1.6); //convert km travelled to miles travelled
