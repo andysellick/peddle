@@ -4,15 +4,16 @@
 angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
 	//all these variables get saved
 	$scope.obj = {
-		//'distancem':0, //distance covered, metres
-		'distancekm':0, 
+		'actualdistkm':0, //actual distance covered, no rounding
+		'distancekm':0, //display distance
 		'distancemi':0,
 		'currdest':1, //keeps track of which destination we're currently heading to
-		'currdestdist':-1,
+		'actualcurrdestdist':0, //actual distance to next location
+		'currdestdist':-1, //display distance to next location
 		'seconds':0,
 		'totaltime':0, //human readable form of time taken
 		//'speedm':0,
-		'speedkmph':0,
+		'speedkmph':60,
 		'speedmph':0,
 		'timespeed':1,
 		'pause':0,
@@ -79,7 +80,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	    $scope.prevdest = $scope.dests[$scope.prevdest].name;
   		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
   		if($scope.obj.currdestdist === -1){
-            $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
+            $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
         }
     };
 
@@ -185,17 +186,16 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
             $scope.checkDests();
             $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
         }
-        else {
-            console.log($scope.obj.currdestdist);
-        }
 
 		//increment distance, based on speed
-		var newdist = ($scope.obj.speedkmph / 1000) * $scope.obj.timespeed; //distance in km we've travelled since last
+		var newdist = ($scope.obj.speedkmph / 3600) * $scope.obj.timespeed; //distance in km we've travelled since last
 		console.log('newdist',newdist);
-		$scope.obj.distancekm = $scope.oneDecimal($scope.obj.distancekm + newdist); //add to total travelled
+		$scope.obj.actualdistkm = $scope.obj.actualdistkm + newdist; //add to total travelled
 
-		$scope.obj.currdestdist = Math.max(0,$scope.oneDecimal($scope.obj.currdestdist - newdist));
-		$scope.obj.distancemi = $scope.oneDecimal($scope.obj.distancekm / 1.6); //convert km travelled to miles travelled
+		$scope.obj.distancemi = $scope.oneDecimal($scope.obj.actualdistkm / 1.6); //convert km travelled to miles travelled
+		$scope.obj.distancekm = $scope.oneDecimal($scope.obj.actualdistkm);
+		$scope.obj.actualcurrdestdist = Math.max(0,$scope.obj.actualcurrdestdist - newdist);
+		$scope.obj.currdestdist = $scope.oneDecimal($scope.obj.actualcurrdestdist);
 
 		//check for status
 		/*
