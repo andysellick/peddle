@@ -30,6 +30,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				'condition':1
 			}
 		],
+		'messages': [
+			{	'text':'1st message, visible',
+				'show':1
+			},
+			{	'text':'invisible',
+				'show':0
+			}
+		],
 	};
 	//variables that don't need to be saved
 	$scope.gear = [
@@ -73,13 +81,16 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.checkDests();
 
 		$scope.recalcStuff();
+		
+		$scope.messages.create('3rd message, visible');
 	};
-	
+
 	//initialise and switch destinations
 	$scope.checkDests = function(increment){
 		if(increment){
             $scope.obj.currdest++;
             $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
+            $scope.messages.create('You reached ' + $scope.currdest);
             if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){
 				console.log('type:',$scope.dests[$scope.obj.currdest].type);
 				//if type, draw polyline
@@ -284,5 +295,15 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
         //console.log($scope.obj.speedkmph,changeby);
 		$scope.obj.speedkmph += changeby;
 		$scope.calcSpeed();
+	};
+	
+	$scope.messages = {
+		create: function(m){
+			$scope.obj.messages.push({'text':m,'show':1});
+		},
+		hide: function(i){
+			console.log(i);
+			$scope.obj.messages[i].show = 0;
+		}
 	};
 });

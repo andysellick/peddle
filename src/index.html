@@ -36,7 +36,7 @@
 <body>
 
     <div class="container" data-ng-app="peddler" data-ng-controller="peddlerController as p" data-ng-init="init()">
-		<p ng-repeat="item in gear">
+		<p data-ng-repeat="item in gear">
 			<label><input type="checkbox" data-ng-checked="checkGearPresent(item.id)" data-ng-click="addGear(item.id)"/> {{ item.id }} {{ item.name }}</label>
 		</p>
 		<p>Total weight: {{ weight }}</p>
@@ -60,8 +60,17 @@
         <span data-ng-class="obj.timespeed == 2 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(2)">x2</span>
         <span data-ng-class="obj.timespeed == 10 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(10)">x10</span>
         <span data-ng-class="obj.timespeed == 100 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(100)">x100</span>
-        
+
         <span class="btn" data-ng-click="pause()">{{ obj.pause === 0 ? "Pause" : "Resume" }}</span>
+        
+        <hr/>
+
+        <div class="messageWrap">
+        	<div data-ng-repeat="message in obj.messages | orderBy:'-'" data-ng-if="message.show">
+        		{{ message.text }} {{ obj.messages.length - $index - 1 }}
+        		<span class="btn" data-ng-click="messages.hide(obj.messages.length - $index - 1)">Remove</span>
+        	</div>
+        </div>
     </div>
 
     <script src="static/bower_components/angular/angular.min.js"></script>
