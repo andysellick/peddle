@@ -2,7 +2,7 @@
 //FIXME check distances again for any country that defaults to m not km e.g. australia, india?
 
 //dist is distance from previous location to this one
-//type of 1 is a journey by alternate means e.g. boat
+//type of 1 is a journey by alternate means, 1 = boat, 2 = flight
 //loc is country this place is in, will output current country location as that of target
 //therefore need to ensure route passes through somewhere either side of every border
 var dests = [
@@ -17,7 +17,8 @@ var dests = [
 {	'name':'Calais',
 	'dist':40,
 	'loc':'France',
-	'type':1
+	'type':1,
+	'time':1800 //time to complete journey in seconds, in this case 30 minutes on the ferry
 },
 {	'name':'Ghyvelde',
 	'dist':55,
@@ -299,7 +300,8 @@ var dests = [
 {	'name':'Jakarta',
 	'dist':1269,
 	'loc':'Indonesia',
-	'type':1
+	'type':1,
+	'time':226800 //63 hours
 },
 {	'name':'Surabaya',
 	'dist':774,
@@ -312,25 +314,32 @@ var dests = [
 {	'name':'Gilimanuk',
 	'dist':5,
 	'loc':'Indonesia',
-	'type':1
+	'type':1,
+	'time':1800 //30 minutes, assuming 10kmph boat speed
 },
 {	'name':'Denpasar City',
 	'dist':123,
 	'loc':'Indonesia',
 },
-{	'name':'Pelabuhan Lembar',
-	'dist':95,
+{	'name':'Padangbai Harbour',
+	'dist':44,
 	'loc':'Indonesia',
-	'type':1
+},
+{	'name':'Pelabuhan Lembar',
+	'dist':71,
+	'loc':'Indonesia',
+	'type':1,
+	'time':25200 //7 hours, assuming 10kmph boat speed
 },
 {	'name':'Lombok',
 	'dist':93,
 	'loc':'Indonesia',
 },
 {	'name':'Jalan Raya Dermaga',
-	'dist':18,
+	'dist':24,
 	'loc':'Indonesia',
-	'type':1
+	'type':1,
+	'time':8280 //2.3 hours, assuming 10kmph boat speed
 },
 {	'name':'Bima',
 	'dist':341,
@@ -339,16 +348,22 @@ var dests = [
 {	'name':'Bandara Komodo',
 	'dist':125,
 	'loc':'Indonesia',
-	'type':1
+	'type':1,
+	'time':30600 //8.5 hours
 },
 {	'name':'Nobo',
 	'dist':578,
 	'loc':'Indonesia',
 },
-{	'name':'Kupang',
-	'dist':150,
+{	'name':'Pelabuhan Larantuka',
+	'dist':53,
 	'loc':'Indonesia',
-	'type':1
+},
+{	'name':'Kupang',
+	'dist':237,
+	'loc':'Indonesia',
+	'type':1,
+	'time':48600
 },
 {	'name':'Jalan Betun-Perbatasan',
 	'dist':255,
@@ -365,7 +380,8 @@ var dests = [
 {	'name':'Darwin',
 	'dist':600,
 	'loc':'Australia',
-	'type':1
+	'type':1,
+	'time':216000 //60 hours
 },
 {	'name':'Elliott',
 	'dist':735,
@@ -386,7 +402,8 @@ var dests = [
 {	'name':'Invercargill',
 	'dist':2140,
 	'loc':'New Zealand',
-	'type':1
+	'type':2,
+	'time':24300 //6 hours 45 minutes
 },
 {	'name':'Dunedin',
 	'dist':205,
@@ -411,7 +428,8 @@ var dests = [
 {	'name':'Wellington',
 	'dist':65,
 	'loc':'New Zealand',
-	'type':1
+	'type':1,
+	'time':10800 //3 hours
 },
 {	'name':'Turangi',
 	'dist':321,
@@ -424,7 +442,8 @@ var dests = [
 {	'name':'Ushuaia',
 	'dist':8163,
 	'loc':'Argentina',
-	'type':1
+	'type':2,
+	'time':104400 //29 hours
 },
 {	'name':'San Sebastian',
 	'dist':284,
@@ -441,7 +460,8 @@ var dests = [
 {	'name':'San Gregorio',
 	'dist':5,
 	'loc':'Chile',
-	'type':1
+	'type':1,
+	'time':1800
 },
 {	'name':'Santa Cruz',
 	'dist':53,
@@ -567,18 +587,15 @@ var dests = [
 	'dist':308,
 	'loc':'Colombia',
 },
-{	'name':'Turbo',
-	'dist':755,
+{	'name':'Medellin',
+	'dist':419,
 	'loc':'Colombia',
 },
-{	'name':'Yaviza',
-	'dist':106,
-	'loc':'Panama',
-	'type':2
-},
 {	'name':'Panama City',
-	'dist':266,
+	'dist':548,
 	'loc':'Panama',
+	'type':2,
+	'time':4500
 },
 {	'name':'David',
 	'dist':467,
@@ -689,9 +706,10 @@ var dests = [
 	'loc':'USA',
 },
 {	'name':'Lisbon',
-	'dist':5423,
+	'dist':5432,
 	'loc':'Portugal',
-	'type':1
+	'type':2,
+	'time':25200
 },
 {	'name':'Vilar Formoso',
 	'dist':350,
@@ -732,7 +750,8 @@ var dests = [
 {	'name':'Dover',
 	'dist':40,
 	'loc':'England',
-	'type':1
+	'type':1,
+	'time':1800 //time to complete journey in seconds, in this case 30 minutes on the ferry
 },
 {	'name':'London',
 	'dist':123,
