@@ -4,7 +4,8 @@
 angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
 	//all these variables get saved
 	$scope.obj = {
-		'actualdistkm':0, //actual distance covered, no rounding
+		'actualdistkm':0, //actual distance peddled, no rounding
+		'totaldistkm':0, //total distance including boats, planes etc.
 		'distancekm':0, //display distance
 		'distancemi':0,
 		'currdest':1, //keeps track of which destination we're currently heading to
@@ -30,14 +31,10 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				'condition':1
 			}
 		],
-		'messages': [
-			{	'text':'1st message, visible',
-				'show':1
-			},
-			{	'text':'invisible',
-				'show':0
-			}
-		],
+		'messages': [],
+		'options': {
+			'fastjourneys':1, //make boat journeys happen instantly, just increment the time
+		}
 	};
 	//variables that don't need to be saved
 	$scope.gear = [
@@ -57,7 +54,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			'weight':2,
 		}
 	];
-
 	$scope.weight = 0;
 	$scope.oneday = 86400; //number of seconds in one day
 	$scope.onehour = 3600; //number of seconds in an hour
@@ -79,10 +75,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//set up destination stuff
 		$scope.dests = dests;
 		$scope.checkDests();
-
 		$scope.recalcStuff();
-		
-		$scope.messages.create('3rd message, visible');
 	};
 
 	//initialise and switch destinations
@@ -90,7 +83,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		if(increment){
             $scope.obj.currdest++;
             $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
-            $scope.messages.create('You reached ' + $scope.currdest);
+            $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest].loc);
             if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){
 				console.log('type:',$scope.dests[$scope.obj.currdest].type);
 				//if type, draw polyline

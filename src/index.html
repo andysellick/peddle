@@ -5,7 +5,7 @@
 <script src="static/bower_components/html5shiv/dist/html5shiv.min.js"></script>
 <![endif]-->
 
-    <title>title</title>
+    <title>Peddle</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="initial-scale=1.0">
 
@@ -67,7 +67,7 @@
 
         <div class="messageWrap">
         	<div data-ng-repeat="message in obj.messages | orderBy:'-'" data-ng-if="message.show">
-        		{{ message.text }} {{ obj.messages.length - $index - 1 }}
+        		{{ message.text }}
         		<span class="btn" data-ng-click="messages.hide(obj.messages.length - $index - 1)">Remove</span>
         	</div>
         </div>
