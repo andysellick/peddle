@@ -17,6 +17,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'speedkmph':60,
 		'speedmph':0,
 		'timespeed':1,
+		'timestamp':0,
 		'pause':0,
 		'bike': {
 			'weight':1,
@@ -64,10 +65,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//$scope.obj.speedm = 5.36448; //12mph is 5.36448 metres per second, 30kmph is 8.3333 metres per second, 20mph is about 9 metres per second
 		var saved = localStorage.getItem('peddler');
 		console.log(saved);
+		//if there's a save file, load it
 		if(saved !== null && saved.length > 0){ //firefox and chrome seem to handle this differently
 			console.log('loading');
 			saved = JSON.parse(saved);
 			$scope.obj = saved;
+			$scope.load();
 		}
 		if(!$scope.obj.pause){
 			$scope.start();
@@ -134,8 +137,17 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//save all data to local storage
 	$scope.save = function(){
 		console.log('saving');
+		$scope.obj.timestamp = Math.floor(Date.now() / 1000);
 		localStorage.setItem('peddler', JSON.stringify($scope.obj));
 	};
+
+	//called on init if save found
+	$scope.load = function(){
+        var now = Math.floor(Date.now() / 1000);
+        var diff = now - $scope.obj.timestamp;
+        console.log(diff);
+        $scope.obj.seconds += diff;
+    };
 
 	//clear localstorage
 	$scope.deleteSave = function(){
