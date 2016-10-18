@@ -20,6 +20,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'pause':0,
 		'bike': {
 			'weight':1,
+			'parts':[
+				{	'name':'Front tyre',
+					'cond':1,
+				},
+				{	'name':'Rear tyre',
+					'cond':1,
+				}
+			]
 		},
 		'gear': [
 			{
@@ -82,12 +90,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//initialise and switch destinations
 	$scope.checkDests = function(increment){
+		//console.log('checkDests',$scope.obj.currdest,$scope.dests[$scope.obj.currdest]);
 		if(increment){
             $scope.obj.currdest++;
             $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
+            console.log($scope.obj.currdest,$scope.dests[$scope.obj.currdest]);
             $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest].loc);
             if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){
-				console.log('type:',$scope.dests[$scope.obj.currdest].type);
+				//console.log('type:',$scope.dests[$scope.obj.currdest].type);
 				//if type, draw polyline
 				//if not, draw directions
 			}
@@ -181,10 +191,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			}
 		}
 	};
-
-	$scope.oneDecimal = function(num){
-        return(Math.round(num * 10) / 10);
-    };
 
 	//main loop, increases time
 	$scope.loop = function(){
@@ -338,4 +344,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 		$scope.recalcStuff();
 	};
+
+	$scope.oneDecimal = function(num){
+        return(Math.round(num * 10) / 10);
+    };
 });
