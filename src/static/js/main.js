@@ -9,11 +9,10 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'distancekm':0, //display distance
 		'distancemi':0,
 		'currdest':1, //keeps track of which destination we're currently heading to
-		'actualcurrdestdist':0, //actual distance to next location
-		'currdestdist':-1, //display distance to next location
+		'actualcurrdestdist':0, //actual distance to next location (not rounded, used for calculation)
+		'currdestdist':-1, //display distance to next location (rounded, used for display)
 		'seconds':0,
 		'totaltime':0, //human readable form of time taken
-		//'speedm':0,
 		'speedkmph':60,
 		'speedmph':0,
 		'timespeed':1,
@@ -66,6 +65,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		var saved = localStorage.getItem('peddler');
 		console.log(saved);
 		//if there's a save file, load it
+		$scope.dests = dests; //need to do this prior to loading
 		if(saved !== null && saved.length > 0){ //firefox and chrome seem to handle this differently
 			console.log('loading');
 			saved = JSON.parse(saved);
@@ -76,7 +76,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			$scope.start();
 		}
 		//set up destination stuff
-		$scope.dests = dests;
 		$scope.checkDests();
 		$scope.recalcStuff();
 	};
@@ -147,6 +146,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
         var diff = now - $scope.obj.timestamp;
         console.log(diff);
         $scope.obj.seconds += diff;
+        
+        /*
+        	decide when next event will be
+        	from saved time until that time, calculate distance covered, places passed through etc.
+        	call event, adjust speed, etc.
+        	repeat until now
+        */
+        $scope.calculateJourney(diff);
     };
 
 	//clear localstorage
@@ -154,38 +161,27 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		console.log('delete');
 		localStorage.setItem('peddler', '');
 	};
-	
-	//look in the gear to see if a particular piece of gear equipped
-	$scope.checkGearPresent = function(id){
-		for(var i = 0; i < $scope.obj.gear.length; i++){
-			if($scope.obj.gear[i].id === id){
-				return true;
+
+	//given a length of time, work out locations passed through in that time
+	$scope.calculateJourney = function(time){
+		//given time, translate time and current speed into distance covered in that time, km
+		var dist = ($scope.obj.speedkmph / $scope.onehour) * time;
+		console.log('You would have travelled ',dist,'km');
+		//loop through destinations
+		for(var x = $scope.obj.currdest; x < $scope.dests.length; x++){
+			if(dist > $scope.obj.actualcurrdestdist){
+				$scope.checkDests(1); //call function to check destinations and increment to next one
+				dist -= $scope.dests[x].dist;
+				$scope.obj.actualdistkm += $scope.dests[x].dist;
 			}
-		}
-		return false;
-	};
-	//given a gear id, add or remove it from the equipped gear
-	$scope.addGear = function(id){
-		var found = 0;
-		var foundlocation = 0;
-		for(var i = 0; i < $scope.obj.gear.length; i++){
-			if($scope.obj.gear[i].id === id){
-				found = 1;
-				foundlocation = i;
+			else {
+				$scope.obj.actualcurrdestdist -= dist;
+				$scope.obj.actualdistkm += dist;
 				break;
 			}
 		}
-		//gear exists, unequip
-		if(found){
-			$scope.obj.gear.splice(foundlocation,1);
-		}
-		//gear is not equipped, equip
-		else {
-			$scope.obj.gear.push({'id':id,'condition':1});
-		}
-		$scope.recalcStuff();
 	};
-	
+
 	$scope.oneDecimal = function(num){
         return(Math.round(num * 10) / 10);
     };
@@ -310,5 +306,36 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			console.log(i);
 			$scope.obj.messages[i].show = 0;
 		}
+	};
+	
+	//look in the gear to see if a particular piece of gear equipped
+	$scope.checkGearPresent = function(id){
+		for(var i = 0; i < $scope.obj.gear.length; i++){
+			if($scope.obj.gear[i].id === id){
+				return true;
+			}
+		}
+		return false;
+	};
+	//given a gear id, add or remove it from the equipped gear
+	$scope.addGear = function(id){
+		var found = 0;
+		var foundlocation = 0;
+		for(var i = 0; i < $scope.obj.gear.length; i++){
+			if($scope.obj.gear[i].id === id){
+				found = 1;
+				foundlocation = i;
+				break;
+			}
+		}
+		//gear exists, unequip
+		if(found){
+			$scope.obj.gear.splice(foundlocation,1);
+		}
+		//gear is not equipped, equip
+		else {
+			$scope.obj.gear.push({'id':id,'condition':1});
+		}
+		$scope.recalcStuff();
 	};
 });
