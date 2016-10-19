@@ -6,11 +6,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.obj = {
 		'actualdistkm':0, //actual distance peddled, no rounding
 		'totaldistkm':0, //total distance including boats, planes etc.
-		'distancekm':0, //display distance
+		'distancekm':0, //display distance, rounded
 		'distancemi':0,
 		'currdest':1, //keeps track of which destination we're currently heading to
 		'actualcurrdestdist':0, //actual distance to next location (not rounded, used for calculation)
 		'currdestdist':-1, //display distance to next location (rounded, used for display)
+
 		'seconds':0,
 		'totaltime':0, //human readable form of time taken
 		'speedkmph':60,
@@ -18,6 +19,15 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'timespeed':1,
 		'timestamp':0,
 		'pause':0,
+		
+		'awake':1, //trigger to tell if we're asleep or not
+		'stopped':0, //
+		'tilstop':$scope.onehour * 4, //how long you can go without a rest fixme this could be varied
+		'tilgo':$scope.onehour / 2, //how long before you can start going again fixme this could be varied
+		'tilsleep':$scope.onehour * 16, //how long before you have to sleep
+		'sleeptime':$scope.onehour * 8, //how long you must sleep fixme this could be varied
+
+
 		'bike': {
 			'weight':1,
 			'parts':[
@@ -91,11 +101,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//initialise and switch destinations
 	$scope.checkDests = function(increment){
 		//console.log('checkDests',$scope.obj.currdest,$scope.dests[$scope.obj.currdest]);
+  		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
 		if(increment){
             $scope.obj.currdest++;
             $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
-            console.log($scope.obj.currdest,$scope.dests[$scope.obj.currdest]);
-            $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest].loc);
+            //console.log($scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
+            $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest].loc + ' after ' + $scope.obj.totaltime);
             if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){
 				//console.log('type:',$scope.dests[$scope.obj.currdest].type);
 				//if type, draw polyline
@@ -104,7 +115,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
   		$scope.prevdest = Math.max(0,$scope.obj.currdest - 1);
 	    $scope.prevdest = $scope.dests[$scope.prevdest].name;
-  		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
   		$scope.currcountry = $scope.dests[$scope.obj.currdest].loc;
   		if($scope.obj.currdestdist === -1){
             $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
@@ -155,8 +165,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
         var now = Math.floor(Date.now() / 1000);
         var diff = now - $scope.obj.timestamp;
         console.log(diff);
-        $scope.obj.seconds += diff;
-        
         /*
         	decide when next event will be
         	from saved time until that time, calculate distance covered, places passed through etc.
@@ -177,27 +185,33 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//given time, translate time and current speed into distance covered in that time, km
 		var dist = ($scope.obj.speedkmph / $scope.onehour) * time;
 		console.log('You would have travelled ',dist,'km');
+		var tmp = 0;
 		//loop through destinations
 		for(var x = $scope.obj.currdest; x < $scope.dests.length; x++){
+			//fixme does this account for the fact that we're likely to be midway between destinations? 
 			if(dist > $scope.obj.actualcurrdestdist){
+				//calculate how much time should be used up getting to this destination
+				//subtract from diff (time) and add to $scope.obj.seconds
+				tmp = ($scope.dests[x].dist / $scope.obj.speedkmph) * $scope.onehour;
+				$scope.obj.seconds += tmp;
+				time -= tmp;
+				$scope.calcTime();
 				$scope.checkDests(1); //call function to check destinations and increment to next one
 				dist -= $scope.dests[x].dist;
 				$scope.obj.actualdistkm += $scope.dests[x].dist;
 			}
 			else {
+				//add remaining time from diff (time) to $scope.obj.seconds
+				$scope.obj.seconds += time;
 				$scope.obj.actualcurrdestdist -= dist;
 				$scope.obj.actualdistkm += dist;
 				break;
 			}
 		}
 	};
-
-	//main loop, increases time
-	$scope.loop = function(){
-		//autosave
-
-		//calculate time so far
-		$scope.obj.seconds += (1 * $scope.obj.timespeed);
+	
+	//calculate time so far
+	$scope.calcTime = function(){
 		var totaltime = $scope.obj.seconds;
 		var days = Math.floor(totaltime / 86400);
 		totaltime -= days * 86400;
@@ -207,6 +221,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		totaltime -= minutes * 60;
 		var seconds = totaltime % 60;
 		$scope.obj.totaltime = days + ' days, ' + hours + ' hours, ' + minutes + ' minutes, ' + seconds + ' seconds';
+	};
+
+	//main loop, increases time
+	$scope.loop = function(){
+		//autosave
+
+		$scope.obj.seconds += (1 * $scope.obj.timespeed);
+		$scope.calcTime();
 
 		//console.log('currdest',$scope.obj.currdest);
 		if($scope.obj.actualcurrdestdist === 0){
