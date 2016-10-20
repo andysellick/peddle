@@ -5,6 +5,7 @@
   "private": true,
   "devDependencies": {
     "html5shiv": "~3.7.3",
-    "angular": "1.4.3"
+    "angular": "1.4.3",
+    "ngmap":"1.17.8"
   }
 }

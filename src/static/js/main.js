@@ -1,7 +1,19 @@
 /* globals angular, dests */
 
 //angular.module('peddler', []).controller('peddlerController',function($scope,$http,$window,$timeout,$compile){
-angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
+angular.module('peddler', ['ngMap']).controller('peddlerController',function($scope,$interval,NgMap) {
+var vm = this;
+        NgMap.getMap().then(function(map) {
+          vm.showCustomMarker= function(evt) {
+            map.customMarkers.foo.setVisible(true);
+            map.customMarkers.foo.setPosition(this.getPosition());
+          };
+          vm.closeCustomMarker= function(evt) {
+            this.style.display = 'none';
+          };
+        });
+
+
 	//all these variables get saved
 	$scope.obj = {
 		'actualdistkm':0, //actual distance peddled, no rounding
@@ -96,6 +108,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//set up destination stuff
 		$scope.checkDests();
 		$scope.recalcStuff();
+
 	};
 
 	//initialise and switch destinations
