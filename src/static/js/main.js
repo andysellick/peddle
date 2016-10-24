@@ -1,18 +1,7 @@
-/* globals angular, dests */
+/* globals angular, dests, google */
 
 //angular.module('peddler', []).controller('peddlerController',function($scope,$http,$window,$timeout,$compile){
-angular.module('peddler', ['ngMap']).controller('peddlerController',function($scope,$interval,NgMap) {
-var vm = this;
-        NgMap.getMap().then(function(map) {
-          vm.showCustomMarker= function(evt) {
-            map.customMarkers.foo.setVisible(true);
-            map.customMarkers.foo.setPosition(this.getPosition());
-          };
-          vm.closeCustomMarker= function(evt) {
-            this.style.display = 'none';
-          };
-        });
-
+angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
 
 	//all these variables get saved
 	$scope.obj = {
@@ -88,6 +77,11 @@ var vm = this;
 	$scope.oneday = 86400; //number of seconds in one day
 	$scope.onehour = 3600; //number of seconds in an hour
 
+    //map variables
+    $scope.map = 0;
+    //$scope.markers = [];
+    //$scope.infolinks = [];
+    $scope.infowindow = new google.maps.InfoWindow();
 
 	//on load, check localstorage for previous save
 	$scope.init = function(){
@@ -108,7 +102,7 @@ var vm = this;
 		//set up destination stuff
 		$scope.checkDests();
 		$scope.recalcStuff();
-
+        $scope.doMap();
 	};
 
 	//initialise and switch destinations
@@ -348,6 +342,55 @@ var vm = this;
 			$scope.obj.messages[i].show = 0;
 		}
 	};
+	
+	$scope.doMap = function(){
+        //only create a map if it doesn't exist already
+        if($scope.map === 0){
+            $scope.map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 4,
+                disableDefaultUI: true
+            });
+            var bounds = new google.maps.LatLngBounds(null);
+            var points = [
+                $scope.dests[$scope.obj.currdest].name + ', ' + $scope.dests[$scope.obj.currdest].loc,
+                $scope.dests[$scope.obj.currdest - 1].name + ', ' + $scope.dests[$scope.obj.currdest - 1].loc,
+            ];
+            console.log(points);
+            var geocoder =  new google.maps.Geocoder();
+            for(var i = 0; i < points.length; i++){
+                geocoder.geocode( { 'address': points[i]}, function(results, status) {
+                    if(status === google.maps.GeocoderStatus.OK) {
+                        //results[0].geometry.location.lat()
+                        //results[0].geometry.location.lng()
+                        //console.log(results[0].geometry.location);
+                        var latlong = {lat:results[0].geometry.location.lat(), lng:results[0].geometry.location.lng()};
+                        console.log(latlong);
+                        var marker = new google.maps.Marker({
+                            position: latlong,
+                            map: $scope.map,
+                            //zIndex: zindex,
+                            //icon: $scope.url_mediapath + markerimg,
+                            zoom:1
+                        });
+                        bounds.extend(marker.position);
+                        if(i >= points.length - 1){
+                            //fitbounds doesn't work the second time, leaves the map too zoomed out
+                            //hacky but works: http://stackoverflow.com/questions/3873195/calling-map-fitbounds-multiple-times-in-google-maps-api-v3-0
+                            setTimeout(function() {$scope.map.fitBounds(bounds);},1);
+                        }
+                    }
+                    else {
+                        console.log('Something wrong with geocoder ' + status);
+                    }
+                });
+            }
+
+        }
+        else {
+            //console.log('clearing map');
+            $scope.deleteMarkers();
+        }
+    };
 	
 	//look in the gear to see if a particular piece of gear equipped
 	$scope.checkGearPresent = function(id){
