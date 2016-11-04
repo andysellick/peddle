@@ -356,15 +356,19 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
                 $scope.dests[$scope.obj.currdest - 1].name + ', ' + $scope.dests[$scope.obj.currdest - 1].loc,
             ];
             console.log(points);
+            var latlngpoints = []; //store the results of the geocoder
+            var lastloop = 0;
             var geocoder =  new google.maps.Geocoder();
             for(var i = 0; i < points.length; i++){
                 geocoder.geocode( { 'address': points[i]}, function(results, status) {
                     if(status === google.maps.GeocoderStatus.OK) {
+                        lastloop++;
                         //results[0].geometry.location.lat()
                         //results[0].geometry.location.lng()
                         //console.log(results[0].geometry.location);
                         var latlong = {lat:results[0].geometry.location.lat(), lng:results[0].geometry.location.lng()};
-                        console.log(latlong);
+                        latlngpoints.push(latlong);
+                        //console.log(latlong);
                         var marker = new google.maps.Marker({
                             position: latlong,
                             map: $scope.map,
@@ -373,7 +377,27 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
                             zoom:1
                         });
                         bounds.extend(marker.position);
-                        if(i >= points.length - 1){
+                        if(lastloop === points.length){
+                            lastloop = 0;
+                            console.log('last',$scope.dests[$scope.obj.currdest].type);
+                            //draw route between the two points
+                            if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane, just draw a straight line
+                                var line = new google.maps.Polyline({
+                                    path: [
+                                        //new google.maps.LatLng(37.4419, -122.1419),
+                                        //new google.maps.LatLng(37.4519, -122.1519)
+                                        latlngpoints[0],
+                                        latlngpoints[1]
+                                    ],
+                                    strokeColor: '#FF0000',
+                                    strokeOpacity: 1.0,
+                                    strokeWeight: 5,
+                                    map: $scope.map
+                                });
+                            }
+                            else { //plot an actual driving route
+                            }
+
                             //fitbounds doesn't work the second time, leaves the map too zoomed out
                             //hacky but works: http://stackoverflow.com/questions/3873195/calling-map-fitbounds-multiple-times-in-google-maps-api-v3-0
                             setTimeout(function() {$scope.map.fitBounds(bounds);},1);
