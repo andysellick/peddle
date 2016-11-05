@@ -396,6 +396,22 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
                                 });
                             }
                             else { //plot an actual driving route
+                                var request = {
+                                    origin: latlngpoints[0],
+                                    destination: latlngpoints[1],
+                                    travelMode: google.maps.TravelMode.DRIVING
+                                };
+                                var directionsDisplay = new google.maps.DirectionsRenderer();
+                                directionsDisplay.setMap($scope.map);
+                                var directionsService = new google.maps.DirectionsService();
+                                directionsService.route(request, function (response, status) {
+                                    if (status === google.maps.DirectionsStatus.OK) {
+                                        directionsDisplay.setDirections(response);
+                                        directionsDisplay.setMap($scope.map);
+                                    } else {
+                                        //alert("Directions Request from " + start.toUrlValue(6) + " to " + end.toUrlValue(6) + " failed: " + status);
+                                    }
+                                });
                             }
 
                             //fitbounds doesn't work the second time, leaves the map too zoomed out
