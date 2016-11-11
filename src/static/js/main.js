@@ -113,7 +113,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
             $scope.obj.currdest++;
             $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
             //console.log($scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
-            $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest].loc + ' after ' + $scope.obj.totaltime);
+            $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime);
             if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){
 				//console.log('type:',$scope.dests[$scope.obj.currdest].type);
 				//if type, draw polyline

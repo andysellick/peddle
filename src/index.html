@@ -35,43 +35,49 @@
 
 <body>
 
-    <div class="container" data-ng-app="peddler" data-ng-controller="peddlerController as p" data-ng-init="init()">
-        <div id="map" class="map"></div>
-		<p data-ng-repeat="item in gear">
-			<label><input type="checkbox" data-ng-checked="checkGearPresent(item.id)" data-ng-click="addGear(item.id)"/> {{ item.id }} {{ item.name }}</label>
-		</p>
-		<p>Total weight: {{ weight }}</p>
-    	<hr/>
-    	<p>Speed: {{ obj.speedkmph }}kph {{ obj.speedmph }}mph </p>
-		<p>Distance: {{ obj.distancekm }}km {{ obj.distancemi }} miles </p>
-		<p>Previous destination: {{ prevdest }}</p>
-		<p>Current destination: {{ currdest }}</p>
-		<p>You are in {{ currcountry }}</p>
-		<p>Distance to current destination: {{ obj.currdestdist }}km</p>
+    <div data-ng-app="peddler" data-ng-controller="peddlerController as p" data-ng-init="init()">
+    	<div class="mapwrapper">
+	        <div id="map" class="map"></div>
+	    </div>
+        <div class="box gear">
+			<p data-ng-repeat="item in gear">
+				<label><input type="checkbox" data-ng-checked="checkGearPresent(item.id)" data-ng-click="addGear(item.id)"/> {{ item.id }} {{ item.name }}</label>
+			</p>
+			<p>Total weight: {{ weight }}</p>
+		</div>
 
-		<span class="btn" data-ng-click="changeSpeed(-1)">Decrease speed</span>
-		<span class="btn" data-ng-click="changeSpeed(1)">Increase speed</span>
-		<hr/>
-		<p>Time: {{ obj.totaltime }}</p>
+		<div class="box stats">
+	    	<p>Speed: {{ obj.speedkmph }}kph {{ obj.speedmph }}mph </p>
+			<p>Distance: {{ obj.distancekm }}km {{ obj.distancemi }} miles </p>
+			<p>Previous destination: {{ prevdest }}</p>
+			<p>Current destination: {{ currdest }}</p>
+			<p>You are in {{ currcountry }}</p>
+			<p>Distance to current destination: {{ obj.currdestdist }}km</p>
+			<p>Time: {{ obj.totaltime }}</p>
+		</div>
 
-        <span class="btn" data-ng-click="save()">Save</span>
-        <span class="btn" data-ng-click="deleteSave()">Delete save</span>
+		<div class="box controls">
+			<span class="btn" data-ng-click="changeSpeed(-1)">Decrease speed</span>
+			<span class="btn" data-ng-click="changeSpeed(1)">Increase speed</span>
 
-        <span data-ng-class="obj.timespeed == 1 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(1)">x1</span>
-        <span data-ng-class="obj.timespeed == 2 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(2)">x2</span>
-        <span data-ng-class="obj.timespeed == 10 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(10)">x10</span>
-        <span data-ng-class="obj.timespeed == 100 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(100)">x100</span>
+	        <span class="btn" data-ng-click="save()">Save</span>
+	        <span class="btn" data-ng-click="deleteSave()">Delete save</span>
 
-        <span class="btn" data-ng-click="pause()">{{ obj.pause === 0 ? "Pause" : "Resume" }}</span>
+	        <span data-ng-class="obj.timespeed == 1 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(1)">x1</span>
+	        <span data-ng-class="obj.timespeed == 2 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(2)">x2</span>
+	        <span data-ng-class="obj.timespeed == 10 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(10)">x10</span>
+	        <span data-ng-class="obj.timespeed == 100 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(100)">x100</span>
+	        <span class="btn" data-ng-click="pause()">{{ obj.pause === 0 ? "Pause" : "Resume" }}</span>
+		</div>
 
-        <hr/>
-
-        <div class="messageWrap">
-        	<div data-ng-repeat="message in obj.messages | orderBy:'-'" data-ng-if="message.show">
-        		{{ message.text }}
-        		<span class="btn" data-ng-click="messages.hide(obj.messages.length - $index - 1)">Remove</span>
-        	</div>
-        </div>
+		<div class="box messages">
+			<div class="messagewrap">
+	        	<div data-ng-repeat="message in obj.messages | orderBy:'-'" data-ng-if="message.show" class="message">
+	        		{{ message.text }}
+	        		<span class="btn" data-ng-click="messages.hide(obj.messages.length - $index - 1)">Remove</span>
+	        	</div>
+	        </div>
+	    </div>
     </div>
 
     <script src="static/bower_components/angular/angular.min.js"></script>

@@ -15,6 +15,81 @@
     .main {
     }
 
-    .map {
-        height:300px;
+    .mapwrapper {
+		position:absolute;
+		z-index:1;
+		top:0;
+		left:0;
+		width:100%;
+		height:100%;
+		.map {
+			width:100vw;
+			height:100vh;
+		}
     }
+
+    .box {
+		position:absolute;
+		z-index:2;
+		padding:1em;
+		.border-box;
+		background:@white;
+
+		&.gear {
+			top:20%;
+			right:20%;
+		}
+		
+		&.controls {
+			top:0;
+			left:20%;
+			width:60%;
+			text-align:center;
+		}
+
+		&.stats {
+			left:20%;
+			top:20%;
+		}
+
+		&.messages {
+			padding:0;
+			bottom:0;
+			left:20%;
+			width:60%;
+			height:15%;
+			overflow:hidden;
+			.transition( all 0.3s );
+			
+			&:hover {
+				height:35%;
+			}
+
+			&:after {
+				content:"";
+				position:absolute;
+				bottom:0;
+				left:0;
+				width:100%;
+				height:20px;
+				border-bottom:solid 5px @white;
+				.vertical-gradient( transparent, 0%, @white, 100% );
+			}
+			.messagewrap {
+				padding:1em;
+				height:100%;
+				.border-box;
+				overflow-y:scroll;
+			}
+			.message {
+				padding-top:0.2em;
+				margin-bottom:1px;
+				border-bottom:solid 1px #CCCCCC;
+				.clearfix;
+				.fontcalculate(15);
+				.btn {
+					float:right;
+				}
+			}
+		}
+	}
