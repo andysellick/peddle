@@ -1,7 +1,8 @@
-/* globals angular, dests */
+/* globals angular, dests, google */
 
 //angular.module('peddler', []).controller('peddlerController',function($scope,$http,$window,$timeout,$compile){
 angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
+
 	//all these variables get saved
 	$scope.obj = {
 		'actualdistkm':0, //actual distance peddled, no rounding
@@ -76,6 +77,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.oneday = 86400; //number of seconds in one day
 	$scope.onehour = 3600; //number of seconds in an hour
 
+    //map variables
+    $scope.map = 0;
+    //$scope.markers = [];
+    //$scope.infolinks = [];
+    $scope.infowindow = new google.maps.InfoWindow();
 
 	//on load, check localstorage for previous save
 	$scope.init = function(){
@@ -96,6 +102,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//set up destination stuff
 		$scope.checkDests();
 		$scope.recalcStuff();
+        $scope.doMap();
 	};
 
 	//initialise and switch destinations
@@ -335,6 +342,95 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			$scope.obj.messages[i].show = 0;
 		}
 	};
+	
+	$scope.doMap = function(){
+        //only create a map if it doesn't exist already
+        if($scope.map === 0){
+            $scope.map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 4,
+                disableDefaultUI: true
+            });
+            var bounds = new google.maps.LatLngBounds(null);
+            var points = [
+                $scope.dests[$scope.obj.currdest].name + ', ' + $scope.dests[$scope.obj.currdest].loc,
+                $scope.dests[$scope.obj.currdest - 1].name + ', ' + $scope.dests[$scope.obj.currdest - 1].loc,
+            ];
+            console.log(points);
+            var latlngpoints = []; //store the results of the geocoder
+            var lastloop = 0;
+            var geocoder =  new google.maps.Geocoder();
+            for(var i = 0; i < points.length; i++){
+                geocoder.geocode( { 'address': points[i]}, function(results, status) {
+                    if(status === google.maps.GeocoderStatus.OK) {
+                        lastloop++;
+                        //results[0].geometry.location.lat()
+                        //results[0].geometry.location.lng()
+                        //console.log(results[0].geometry.location);
+                        var latlong = {lat:results[0].geometry.location.lat(), lng:results[0].geometry.location.lng()};
+                        latlngpoints.push(latlong);
+                        //console.log(latlong);
+                        var marker = new google.maps.Marker({
+                            position: latlong,
+                            map: $scope.map,
+                            //zIndex: zindex,
+                            //icon: $scope.url_mediapath + markerimg,
+                            zoom:1
+                        });
+                        bounds.extend(marker.position);
+                        if(lastloop === points.length){
+                            lastloop = 0;
+                            console.log('last',$scope.dests[$scope.obj.currdest].type);
+                            //draw route between the two points
+                            if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane, just draw a straight line
+                                var line = new google.maps.Polyline({
+                                    path: [
+                                        //new google.maps.LatLng(37.4419, -122.1419),
+                                        //new google.maps.LatLng(37.4519, -122.1519)
+                                        latlngpoints[0],
+                                        latlngpoints[1]
+                                    ],
+                                    strokeColor: '#FF0000',
+                                    strokeOpacity: 1.0,
+                                    strokeWeight: 5,
+                                    map: $scope.map
+                                });
+                            }
+                            else { //plot an actual driving route
+                                var request = {
+                                    origin: latlngpoints[0],
+                                    destination: latlngpoints[1],
+                                    travelMode: google.maps.TravelMode.DRIVING
+                                };
+                                var directionsDisplay = new google.maps.DirectionsRenderer();
+                                directionsDisplay.setMap($scope.map);
+                                var directionsService = new google.maps.DirectionsService();
+                                directionsService.route(request, function (response, status) {
+                                    if (status === google.maps.DirectionsStatus.OK) {
+                                        directionsDisplay.setDirections(response);
+                                        directionsDisplay.setMap($scope.map);
+                                    } else {
+                                        //alert("Directions Request from " + start.toUrlValue(6) + " to " + end.toUrlValue(6) + " failed: " + status);
+                                    }
+                                });
+                            }
+
+                            //fitbounds doesn't work the second time, leaves the map too zoomed out
+                            //hacky but works: http://stackoverflow.com/questions/3873195/calling-map-fitbounds-multiple-times-in-google-maps-api-v3-0
+                            setTimeout(function() {$scope.map.fitBounds(bounds);},1);
+                        }
+                    }
+                    else {
+                        console.log('Something wrong with geocoder ' + status);
+                    }
+                });
+            }
+
+        }
+        else {
+            //console.log('clearing map');
+            $scope.deleteMarkers();
+        }
+    };
 	
 	//look in the gear to see if a particular piece of gear equipped
 	$scope.checkGearPresent = function(id){
