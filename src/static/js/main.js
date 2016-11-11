@@ -13,6 +13,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'actualcurrdestdist':0, //actual distance to next location (not rounded, used for calculation)
 		'currdestdist':-1, //display distance to next location (rounded, used for display)
 
+		'starttime':'',
 		'seconds':0,
 		'totaltime':0, //human readable form of time taken
 		'speedkmph':60,
@@ -22,12 +23,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'pause':0,
 		
 		'awake':1, //trigger to tell if we're asleep or not
-		'stopped':0, //
-		'tilstop':$scope.onehour * 4, //how long you can go without a rest fixme this could be varied
-		'tilgo':$scope.onehour / 2, //how long before you can start going again fixme this could be varied
-		'tilsleep':$scope.onehour * 16, //how long before you have to sleep
-		'sleeptime':$scope.onehour * 8, //how long you must sleep fixme this could be varied
-
+		'stopped':0, //currently moving or not
+		'tilstop':0, //how long you can go without a rest fixme this could be varied
+		'tilgo':0, //how long before you can start going again fixme this could be varied
+		'tilsleep':0, //how long before you have to sleep
+		'sleeptime':0, //how long you must sleep fixme this could be varied
 
 		'bike': {
 			'weight':1,
@@ -87,14 +87,22 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.init = function(){
 		//$scope.obj.speedm = 5.36448; //12mph is 5.36448 metres per second, 30kmph is 8.3333 metres per second, 20mph is about 9 metres per second
 		var saved = localStorage.getItem('peddler');
-		console.log(saved);
+		//console.log(saved);
 		//if there's a save file, load it
 		$scope.dests = dests; //need to do this prior to loading
+		//if there's a saved file, load it
 		if(saved !== null && saved.length > 0){ //firefox and chrome seem to handle this differently
 			console.log('loading');
 			saved = JSON.parse(saved);
 			$scope.obj = saved;
 			$scope.load();
+		}
+		//otherwise do some initial setup
+		else {
+			$scope.timings.initialSetup();
+			var currentdate = new Date();
+			$scope.obj.starttime = currentdate.getDate() + '/' + (currentdate.getMonth()+1)  + '/' + currentdate.getFullYear() + ' @ ' + currentdate.getHours() + ':' + currentdate.getMinutes() + ':' + currentdate.getSeconds();
+			$scope.messages.create('You have begun your journey, ' + $scope.obj.starttime);
 		}
 		if(!$scope.obj.pause){
 			$scope.start();
@@ -187,6 +195,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		localStorage.setItem('peddler', '');
 	};
 
+	//fixme need to include sleeping in here now
 	//given a length of time, work out locations passed through in that time
 	$scope.calculateJourney = function(time){
 		//given time, translate time and current speed into distance covered in that time, km
@@ -232,25 +241,31 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//main loop, increases time
 	$scope.loop = function(){
-		//autosave
+		//fixme autosave
 
 		$scope.obj.seconds += (1 * $scope.obj.timespeed);
-		$scope.calcTime();
+		$scope.timings.checkSleep();
 
-		//console.log('currdest',$scope.obj.currdest);
-		if($scope.obj.actualcurrdestdist === 0){
-            $scope.checkDests(1);
-        }
+		if($scope.obj.awake){
+			$scope.obj.tilsleep = Math.max(0,$scope.obj.tilsleep - (1 * $scope.obj.timespeed));
+			$scope.calcTime();
+			console.log($scope.obj.tilsleep);
 
-		//increment distance, based on speed
-		var newdist = ($scope.obj.speedkmph / 3600) * $scope.obj.timespeed; //distance in km we've travelled since last
-		//console.log('newdist',newdist);
-		$scope.obj.actualdistkm = $scope.obj.actualdistkm + newdist; //add to total travelled
+			//console.log('currdest',$scope.obj.currdest);
+			if($scope.obj.actualcurrdestdist === 0){
+	            $scope.checkDests(1);
+	        }
 
-		$scope.obj.distancemi = $scope.oneDecimal($scope.obj.actualdistkm / 1.6); //convert km travelled to miles travelled
-		$scope.obj.distancekm = $scope.oneDecimal($scope.obj.actualdistkm);
-		$scope.obj.actualcurrdestdist = Math.max(0,$scope.obj.actualcurrdestdist - newdist);
-		$scope.obj.currdestdist = $scope.oneDecimal($scope.obj.actualcurrdestdist);
+			//increment distance, based on speed
+			var newdist = ($scope.obj.speedkmph / 3600) * $scope.obj.timespeed; //distance in km we've travelled since last
+			//console.log('newdist',newdist);
+			$scope.obj.actualdistkm = $scope.obj.actualdistkm + newdist; //add to total travelled
+
+			$scope.obj.distancemi = $scope.oneDecimal($scope.obj.actualdistkm / 1.6); //convert km travelled to miles travelled
+			$scope.obj.distancekm = $scope.oneDecimal($scope.obj.actualdistkm);
+			$scope.obj.actualcurrdestdist = Math.max(0,$scope.obj.actualcurrdestdist - newdist);
+			$scope.obj.currdestdist = $scope.oneDecimal($scope.obj.actualcurrdestdist);
+		}
 
 		//check for status
 		/*
@@ -343,6 +358,29 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 	};
 	
+	//functions relating to countdowns for sleep, event occurrence, etc.
+	$scope.timings = {
+		//initialise the starting values
+		initialSetup: function(){
+			$scope.obj.awake = 1;
+			$scope.obj.stopped = 0;
+			$scope.obj.tilstop = $scope.onehour * 4;
+			$scope.obj.tilgo = $scope.onehour / 2;
+			$scope.obj.tilsleep = $scope.onehour * 16;
+			$scope.obj.sleeptime = $scope.onehour * 8;
+		},
+		checkSleep: function(){
+			if($scope.obj.tilsleep === 0){
+				$scope.obj.awake = 0;
+				$scope.obj.sleeptime = Math.max(0,$scope.obj.sleeptime - (1 * $scope.obj.timespeed));
+			}
+			if($scope.obj.sleeptime === 0){
+				$scope.obj.tilsleep = $scope.onehour * 16; //reset time til next sleep
+				$scope.obj.sleeptime = $scope.onehour * 8; //reset sleeptime
+			}
+		},
+	};
+
 	$scope.doMap = function(){
         //only create a map if it doesn't exist already
         if($scope.map === 0){
