@@ -188,7 +188,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		var tmp = 0;
 		//loop through destinations
 		for(var x = $scope.obj.currdest; x < $scope.dests.length; x++){
-			//fixme does this account for the fact that we're likely to be midway between destinations? 
+			//fixme does this account for the fact that we're likely to be midway between destinations?
 			if(dist > $scope.obj.actualcurrdestdist){
 				//calculate how much time should be used up getting to this destination
 				//subtract from diff (time) and add to $scope.obj.seconds
