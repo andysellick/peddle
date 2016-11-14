@@ -79,7 +79,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
     //map variables
     $scope.map = 0;
-    //$scope.markers = [];
+    $scope.markers = [];
     //$scope.infolinks = [];
     $scope.infowindow = new google.maps.InfoWindow();
 
@@ -111,12 +111,17 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.checkDests();
 		$scope.recalcStuff();
         $scope.doMap();
+        
+        for(var m = 0; m < $scope.obj.messages.length; m++){
+	        console.log($scope.obj.messages[m]);
+		}
 	};
 
-	//initialise and switch destinations
+	//initialise destinations and change destinations
 	$scope.checkDests = function(increment){
 		//console.log('checkDests',$scope.obj.currdest,$scope.dests[$scope.obj.currdest]);
   		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
+  		//change destination
 		if(increment){
             $scope.obj.currdest++;
             $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
@@ -172,7 +177,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.save = function(){
 		console.log('saving');
 		$scope.obj.timestamp = Math.floor(Date.now() / 1000);
-		localStorage.setItem('peddler', JSON.stringify($scope.obj));
+		//localStorage.setItem('peddler', JSON.stringify($scope.obj));
+		localStorage.setItem('peddler', angular.toJson($scope.obj));
 	};
 
 	//called on init if save found
@@ -249,11 +255,13 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		if($scope.obj.awake){
 			$scope.obj.tilsleep = Math.max(0,$scope.obj.tilsleep - (1 * $scope.obj.timespeed));
 			$scope.calcTime();
-			console.log($scope.obj.tilsleep);
+			//console.log($scope.obj.tilsleep);
 
 			//console.log('currdest',$scope.obj.currdest);
+			//switch to the next destination
 			if($scope.obj.actualcurrdestdist === 0){
 	            $scope.checkDests(1);
+	            $scope.doMap();
 	        }
 
 			//increment distance, based on speed
@@ -380,7 +388,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			}
 		},
 	};
-
+	
+	//fixme might need to clear up previous markers/lines
 	$scope.doMap = function(){
         //only create a map if it doesn't exist already
         if($scope.map === 0){
@@ -388,87 +397,95 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
                 zoom: 4,
                 disableDefaultUI: true
             });
-            var bounds = new google.maps.LatLngBounds(null);
-            var points = [
-                $scope.dests[$scope.obj.currdest].name + ', ' + $scope.dests[$scope.obj.currdest].loc,
-                $scope.dests[$scope.obj.currdest - 1].name + ', ' + $scope.dests[$scope.obj.currdest - 1].loc,
-            ];
-            console.log(points);
-            var latlngpoints = []; //store the results of the geocoder
-            var lastloop = 0;
-            var geocoder =  new google.maps.Geocoder();
-            for(var i = 0; i < points.length; i++){
-                geocoder.geocode( { 'address': points[i]}, function(results, status) {
-                    if(status === google.maps.GeocoderStatus.OK) {
-                        lastloop++;
-                        //results[0].geometry.location.lat()
-                        //results[0].geometry.location.lng()
-                        //console.log(results[0].geometry.location);
-                        var latlong = {lat:results[0].geometry.location.lat(), lng:results[0].geometry.location.lng()};
-                        latlngpoints.push(latlong);
-                        //console.log(latlong);
-                        var marker = new google.maps.Marker({
-                            position: latlong,
-                            map: $scope.map,
-                            //zIndex: zindex,
-                            //icon: $scope.url_mediapath + markerimg,
-                            zoom:1
-                        });
-                        bounds.extend(marker.position);
-                        if(lastloop === points.length){
-                            lastloop = 0;
-                            console.log('last',$scope.dests[$scope.obj.currdest].type);
-                            //draw route between the two points
-                            if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane, just draw a straight line
-                                var line = new google.maps.Polyline({
-                                    path: [
-                                        //new google.maps.LatLng(37.4419, -122.1419),
-                                        //new google.maps.LatLng(37.4519, -122.1519)
-                                        latlngpoints[0],
-                                        latlngpoints[1]
-                                    ],
-                                    strokeColor: '#FF0000',
-                                    strokeOpacity: 1.0,
-                                    strokeWeight: 5,
-                                    map: $scope.map
-                                });
-                            }
-                            else { //plot an actual driving route
-                                var request = {
-                                    origin: latlngpoints[0],
-                                    destination: latlngpoints[1],
-                                    travelMode: google.maps.TravelMode.DRIVING
-                                };
-                                var directionsDisplay = new google.maps.DirectionsRenderer();
-                                directionsDisplay.setMap($scope.map);
-                                var directionsService = new google.maps.DirectionsService();
-                                directionsService.route(request, function (response, status) {
-                                    if (status === google.maps.DirectionsStatus.OK) {
-                                        directionsDisplay.setDirections(response);
-                                        directionsDisplay.setMap($scope.map);
-                                    } else {
-                                        //alert("Directions Request from " + start.toUrlValue(6) + " to " + end.toUrlValue(6) + " failed: " + status);
-                                    }
-                                });
-                            }
+		}
+		else {
+			$scope.deleteMarkers();
+		}
+		var bounds = new google.maps.LatLngBounds(null);
+		var points = [
+			$scope.dests[$scope.obj.currdest].name + ', ' + $scope.dests[$scope.obj.currdest].loc,
+			$scope.dests[$scope.obj.currdest - 1].name + ', ' + $scope.dests[$scope.obj.currdest - 1].loc,
+		];
+		//console.log(points);
+		var latlngpoints = []; //store the results of the geocoder
+		var lastloop = 0;
+		var geocoder =  new google.maps.Geocoder();
+		for(var i = 0; i < points.length; i++){
+			geocoder.geocode( { 'address': points[i]}, function(results, status) {
+				if(status === google.maps.GeocoderStatus.OK) {
+					lastloop++;
+					var latlong = {lat:results[0].geometry.location.lat(), lng:results[0].geometry.location.lng()};
+					latlngpoints.push(latlong);
+					//console.log(latlong);
+					var marker = new google.maps.Marker({
+						position: latlong,
+						map: $scope.map,
+						//icon: $scope.url_mediapath + markerimg,
+						zoom:1
+					});
+					$scope.markers.push(marker);
+					bounds.extend(marker.position);
 
-                            //fitbounds doesn't work the second time, leaves the map too zoomed out
-                            //hacky but works: http://stackoverflow.com/questions/3873195/calling-map-fitbounds-multiple-times-in-google-maps-api-v3-0
-                            setTimeout(function() {$scope.map.fitBounds(bounds);},1);
-                        }
-                    }
-                    else {
-                        console.log('Something wrong with geocoder ' + status);
-                    }
-                });
-            }
+					if(lastloop === points.length){
+						lastloop = 0;
+						console.log('last',$scope.dests[$scope.obj.currdest].type);
+						//draw route between the two points
+						if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane, just draw a straight line
+							var line = new google.maps.Polyline({
+								path: [
+									latlngpoints[0],
+									latlngpoints[1]
+								],
+								strokeColor: '#FF0000',
+								strokeOpacity: 0.6,
+								strokeWeight: 5,
+								map: $scope.map
+							});
+						}
+						else { //plot an actual driving route
+							var request = {
+								origin: latlngpoints[0],
+								destination: latlngpoints[1],
+								travelMode: google.maps.TravelMode.DRIVING
+							};
+							var directionsDisplay = new google.maps.DirectionsRenderer({suppressMarkers: true});
+							directionsDisplay.setMap($scope.map);
+							var directionsService = new google.maps.DirectionsService();
+							directionsService.route(request, function (response, status) {
+								if (status === google.maps.DirectionsStatus.OK) {
+									directionsDisplay.setDirections(response);
+									directionsDisplay.setMap($scope.map);
+								} else {
+									//alert("Directions Request from " + start.toUrlValue(6) + " to " + end.toUrlValue(6) + " failed: " + status);
+								}
+							});
+						}
 
-        }
-        else {
-            //console.log('clearing map');
-            $scope.deleteMarkers();
-        }
+						//fitbounds doesn't work the second time, leaves the map too zoomed out
+						//hacky but works: http://stackoverflow.com/questions/3873195/calling-map-fitbounds-multiple-times-in-google-maps-api-v3-0
+						setTimeout(function() {$scope.map.fitBounds(bounds);},1);
+					}
+				}
+				else {
+					console.log('Something wrong with geocoder ' + status);
+				}
+			});
+		}
     };
+    
+    //remove markers from map
+    $scope.deleteMarkers = function() {
+		console.log('Deleting markers',$scope.markers);
+        if($scope.markers.length){
+            for(var i = 0; i < $scope.markers.length; i++) {
+                if($scope.markers[i]){
+                    $scope.markers[i].setMap(null);
+                }
+            }
+        }
+        $scope.markers = [];
+        $scope.map.setZoom(20);
+	};
 	
 	//look in the gear to see if a particular piece of gear equipped
 	$scope.checkGearPresent = function(id){
