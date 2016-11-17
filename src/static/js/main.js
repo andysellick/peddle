@@ -215,7 +215,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				//calculate how much time should be used up getting to this destination
 				//subtract from diff (time) and add to $scope.obj.seconds
 				tmp = ($scope.dests[x].dist / $scope.obj.speedkmph) * $scope.onehour;
-				$scope.obj.seconds += tmp;
+				$scope.incrementTime(tmp);
 				time -= tmp;
 				$scope.calcTime();
 				$scope.checkDests(1); //call function to check destinations and increment to next one
@@ -244,12 +244,18 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		var seconds = totaltime % 60;
 		$scope.obj.totaltime = days + ' days, ' + hours + ' hours, ' + minutes + ' minutes, ' + seconds + ' seconds';
 	};
+	
+	//generic function to increase the amount of time that has elapsed.
+	//called both by the main loop (per second) and by the load functionality
+	$scope.incrementTime = function(incrementby){
+		$scope.obj.seconds += (incrementby * $scope.obj.timespeed);
+	};
 
 	//main loop, increases time
 	$scope.loop = function(){
 		//fixme autosave
 
-		$scope.obj.seconds += (1 * $scope.obj.timespeed);
+		$scope.incrementTime(1);
 		$scope.timings.checkSleep();
 
 		if($scope.obj.awake){
