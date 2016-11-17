@@ -23,11 +23,13 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'pause':0,
 		
 		'awake':1, //trigger to tell if we're asleep or not
-		'stopped':0, //currently moving or not
+		'moving':0, //currently moving or not
 		'tilstop':0, //how long you can go without a rest fixme this could be varied
 		'tilgo':0, //how long before you can start going again fixme this could be varied
 		'tilsleep':0, //how long before you have to sleep
-		'sleeptime':0, //how long you must sleep fixme this could be varied
+		'tilwake':0, //how long before you wake up
+		'sleeplength':0, //how long you must sleep fixme might now be unused
+		'tilevent':0, //how long until the next event, will be randomised
 
 		'bike': {
 			'weight':1,
@@ -77,6 +79,9 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.oneday = 86400; //number of seconds in one day
 	$scope.onehour = 3600; //number of seconds in an hour
 
+	$scope.mode = 1; //mode indicates whether we're running in realtime (1) or simulated (0, loading)
+	$scope.timestep = 1;
+
     //map variables
     $scope.map = 0;
     $scope.markers = [];
@@ -115,6 +120,10 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
         for(var m = 0; m < $scope.obj.messages.length; m++){
 	        console.log($scope.obj.messages[m]);
 		}
+		
+		//reset for realtime operation
+		$scope.timestep = 1;
+		$scope.mode = 1;
 	};
 
 	//initialise destinations and change destinations
@@ -187,12 +196,45 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
         var diff = now - $scope.obj.timestamp;
         console.log(diff);
         /*
-        	decide when next event will be
-        	from saved time until that time, calculate distance covered, places passed through etc.
-        	call event, adjust speed, etc.
+        	decide how long until next thing - sleep, rest, new destination, event
+        	call newLoop with that time length and a call to the function to handle the upcoming thing
         	repeat until now
         */
-        $scope.calculateJourney(diff);
+        //$scope.calculateJourney(diff);
+
+        var functiontopass = ''; //fixme need default value actually wait, shouldn't we always come back to this point?
+
+		if($scope.obj.awake){
+			if($scope.obj.moving){
+				//find which is smallest - time til next stop, next sleep, next event
+				if($scope.obj.tilsleep < $scope.obj.tilstop && $scope.obj.tilsleep < $scope.obj.tilevent){ //tilsleep happens first
+					$scope.timestep = $scope.obj.tilsleep;
+					functiontopass = '';
+				}
+				else if($scope.obj.tilstop < $scope.obj.tilevent && $scope.obj.tilstop < $scope.obj.tilsleep){ //tilstop happens first
+					$scope.timestep = $scope.obj.tilstop;
+					functiontopass = '';
+				}
+				else { //tilevent happens first
+					$scope.timestep = $scope.obj.tilevent;
+					functiontopass = '';
+				}
+			}
+			//no events occur while stopped
+			else {
+				$scope.timestep = $scope.obj.tilgo;
+				//fixme now reset tilgo
+				functiontopass = '';
+			}
+		}
+		//if not awake, do nothing but sleep until awake
+		else {
+			$scope.timestep = $scope.obj.tilwake;
+			//fixme now reset tilwake
+			functiontopass = '';
+		}
+		$scope.newLoop(functiontopass); //fixme what function to pass? This one?
+
     };
 
 	//clear localstorage
@@ -232,6 +274,18 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 	};
 	
+	$scope.newLoop = function(nextfunction){
+		$scope.incrementTime($scope.timestep);
+
+		//if we're not running in realtime, just call this function again
+		//otherwise it's already handled by an interval
+		if(!$scope.mode){
+			//fixme need to call function here to recalculate $scope.timestep
+			$scope[nextfunction];
+			$scope.newLoop();
+		}
+	};
+
 	//calculate time so far
 	$scope.calcTime = function(){
 		var totaltime = $scope.obj.seconds;
@@ -377,20 +431,20 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//initialise the starting values
 		initialSetup: function(){
 			$scope.obj.awake = 1;
-			$scope.obj.stopped = 0;
+			$scope.obj.moving = 1;
 			$scope.obj.tilstop = $scope.onehour * 4;
 			$scope.obj.tilgo = $scope.onehour / 2;
 			$scope.obj.tilsleep = $scope.onehour * 16;
-			$scope.obj.sleeptime = $scope.onehour * 8;
+			$scope.obj.sleeplength = $scope.onehour * 8;
 		},
 		checkSleep: function(){
 			if($scope.obj.tilsleep === 0){
 				$scope.obj.awake = 0;
-				$scope.obj.sleeptime = Math.max(0,$scope.obj.sleeptime - (1 * $scope.obj.timespeed));
+				$scope.obj.sleeplength = Math.max(0,$scope.obj.sleeplength - (1 * $scope.obj.timespeed));
 			}
-			if($scope.obj.sleeptime === 0){
+			if($scope.obj.sleeplength === 0){
 				$scope.obj.tilsleep = $scope.onehour * 16; //reset time til next sleep
-				$scope.obj.sleeptime = $scope.onehour * 8; //reset sleeptime
+				$scope.obj.sleeplength = $scope.onehour * 8; //reset sleeptime
 			}
 		},
 	};
@@ -417,7 +471,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		var lastloop = 0;
 		var geocoder =  new google.maps.Geocoder();
 		for(var i = 0; i < points.length; i++){
-			geocoder.geocode( { 'address': points[i]}, function(results, status) {
+			geocoder.geocode( { 'address': points[i]}, function(results, status) { //fixme need to check geocoder is getting the destinations right, spoiler, it isn't, see turkey
 				if(status === google.maps.GeocoderStatus.OK) {
 					lastloop++;
 					var latlong = {lat:results[0].geometry.location.lat(), lng:results[0].geometry.location.lng()};
