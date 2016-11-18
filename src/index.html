@@ -53,6 +53,13 @@
 			<p>Current destination: {{ currdest }}, {{ currcountry }}</p>
 			<p>Distance to current destination: {{ obj.currdestdist }}km</p>
 			<p>Time: {{ obj.totaltime }}</p>
+			<hr/>
+			<p>Awake: {{ obj.awake }}, Moving: {{ obj.moving }}</p>
+			<p>Time til sleep: {{ obj.tilsleep }}</p>
+			<p>Time til end of sleep: {{ obj.tilwake }}</p>
+			<p>Time til rest: {{ obj.tilstop }}</p>
+			<p>Time til end of rest: {{ obj.tilgo }}</p>
+
 		</div>
 
 		<div class="box controls">
@@ -66,6 +73,7 @@
 	        <span data-ng-class="obj.timespeed == 2 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(2)">x2</span>
 	        <span data-ng-class="obj.timespeed == 10 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(10)">x10</span>
 	        <span data-ng-class="obj.timespeed == 100 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(100)">x100</span>
+	        <span data-ng-class="obj.timespeed == 300 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(300)">x300</span>
 	        <span class="btn" data-ng-click="pause()">{{ obj.pause === 0 ? "Pause" : "Resume" }}</span>
 		</div>
 

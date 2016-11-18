@@ -2,6 +2,18 @@
 
 //angular.module('peddler', []).controller('peddlerController',function($scope,$http,$window,$timeout,$compile){
 angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
+	$scope.weight = 0;
+	$scope.oneday = 86400; //number of seconds in one day
+	$scope.onehour = 3600; //number of seconds in an hour
+
+	$scope.mode = 1; //mode indicates whether we're running in realtime (1) or simulated (0, loading)
+	$scope.timestep = 1; //defaults to 1 second, unless we're loading, in which case we negotiate time in larger chunks
+
+    //map variables
+    $scope.map = 0;
+    $scope.markers = [];
+    //$scope.infolinks = [];
+    $scope.infowindow = new google.maps.InfoWindow();
 
 	//all these variables get saved
 	$scope.obj = {
@@ -16,19 +28,18 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'starttime':'',
 		'seconds':0,
 		'totaltime':0, //human readable form of time taken
-		'speedkmph':60,
+		'speedkmph':30,
 		'speedmph':0,
 		'timespeed':1,
 		'timestamp':0,
 		'pause':0,
-		
+
 		'awake':1, //trigger to tell if we're asleep or not
-		'moving':0, //currently moving or not
-		'tilstop':0, //how long you can go without a rest fixme this could be varied
-		'tilgo':0, //how long before you can start going again fixme this could be varied
-		'tilsleep':0, //how long before you have to sleep
-		'tilwake':0, //how long before you wake up
-		'sleeplength':0, //how long you must sleep fixme might now be unused
+		'moving':1, //currently moving or not
+		'tilstop':$scope.onehour * 2, //how long you can go without a rest fixme this could be varied
+		'tilgo':$scope.onehour / 2, //how long before you can start going again fixme this could be varied
+		'tilsleep':$scope.onehour * 16, //how long before you have to sleep
+		'tilwake':$scope.onehour * 7, //how long before you wake up
 		'tilevent':0, //how long until the next event, will be randomised
 
 		'bike': {
@@ -43,12 +54,10 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			]
 		},
 		'gear': [
-			{
-				'id':1,
+			{	'id':1,
 				'condition':1
 			},
-			{
-				'id':2,
+			{	'id':2,
 				'condition':1
 			}
 		],
@@ -59,40 +68,24 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	};
 	//variables that don't need to be saved
 	$scope.gear = [
-		{
-			'id':1,
+		{	'id':1,
 			'name':'Sunglasses',
 			'weight':1,
 		},
-		{
-			'id':2,
+		{	'id':2,
 			'name':'Puncture resistant tyres',
 			'weight':3,
 		},
-		{
-			'id':3,
+		{	'id':3,
 			'name':'Regular tyres',
 			'weight':2,
 		}
 	];
-	$scope.weight = 0;
-	$scope.oneday = 86400; //number of seconds in one day
-	$scope.onehour = 3600; //number of seconds in an hour
-
-	$scope.mode = 1; //mode indicates whether we're running in realtime (1) or simulated (0, loading)
-	$scope.timestep = 1;
-
-    //map variables
-    $scope.map = 0;
-    $scope.markers = [];
-    //$scope.infolinks = [];
-    $scope.infowindow = new google.maps.InfoWindow();
 
 	//on load, check localstorage for previous save
 	$scope.init = function(){
 		//$scope.obj.speedm = 5.36448; //12mph is 5.36448 metres per second, 30kmph is 8.3333 metres per second, 20mph is about 9 metres per second
 		var saved = localStorage.getItem('peddler');
-		//console.log(saved);
 		//if there's a save file, load it
 		$scope.dests = dests; //need to do this prior to loading
 		//if there's a saved file, load it
@@ -104,10 +97,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 		//otherwise do some initial setup
 		else {
-			$scope.timings.initialSetup();
-			var currentdate = new Date();
-			$scope.obj.starttime = currentdate.getDate() + '/' + (currentdate.getMonth()+1)  + '/' + currentdate.getFullYear() + ' @ ' + currentdate.getHours() + ':' + currentdate.getMinutes() + ':' + currentdate.getSeconds();
-			$scope.messages.create('You have begun your journey, ' + $scope.obj.starttime);
+			$scope.messages.create('You have begun your journey, ' + $scope.getTimeNow());
 		}
 		if(!$scope.obj.pause){
 			$scope.start();
@@ -116,14 +106,20 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.checkDests();
 		$scope.recalcStuff();
         $scope.doMap();
-        
+
         for(var m = 0; m < $scope.obj.messages.length; m++){
 	        console.log($scope.obj.messages[m]);
 		}
-		
+
 		//reset for realtime operation
 		$scope.timestep = 1;
 		$scope.mode = 1;
+	};
+
+	//get the actual date time right now
+	$scope.getTimeNow = function(){
+		var currentdate = new Date();
+		return currentdate.getDate() + '/' + (currentdate.getMonth()+1)  + '/' + currentdate.getFullYear() + ' @ ' + currentdate.getHours() + ':' + currentdate.getMinutes() + ':' + currentdate.getSeconds();
 	};
 
 	//initialise destinations and change destinations
@@ -161,7 +157,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.start = function(){
 		$scope.stop();
 		promise = $interval(function(){
-			$scope.loop();
+			$scope.newLoop();
 		},1000);
 	};
 
@@ -182,6 +178,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 	};
 
+	//clear localstorage
+	$scope.deleteSave = function(){
+		console.log('delete');
+		localStorage.setItem('peddler', '');
+	};
+
 	//save all data to local storage
 	$scope.save = function(){
 		console.log('saving');
@@ -194,55 +196,41 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.load = function(){
         var now = Math.floor(Date.now() / 1000);
         var diff = now - $scope.obj.timestamp;
-        console.log(diff);
-        /*
-        	decide how long until next thing - sleep, rest, new destination, event
-        	call newLoop with that time length and a call to the function to handle the upcoming thing
-        	repeat until now
-        */
+        //console.log(diff);
         //$scope.calculateJourney(diff);
+        $scope.loadLoop();
+	};
 
-        var functiontopass = ''; //fixme need default value actually wait, shouldn't we always come back to this point?
-
+	//decide how long until next thing - sleep, rest, new destination, event
+	//call newLoop with that time length and a call to the function to handle the upcoming thing
+	$scope.loadLoop = function(){
 		if($scope.obj.awake){
 			if($scope.obj.moving){
 				//find which is smallest - time til next stop, next sleep, next event
 				if($scope.obj.tilsleep < $scope.obj.tilstop && $scope.obj.tilsleep < $scope.obj.tilevent){ //tilsleep happens first
 					$scope.timestep = $scope.obj.tilsleep;
-					functiontopass = '';
 				}
 				else if($scope.obj.tilstop < $scope.obj.tilevent && $scope.obj.tilstop < $scope.obj.tilsleep){ //tilstop happens first
 					$scope.timestep = $scope.obj.tilstop;
-					functiontopass = '';
 				}
 				else { //tilevent happens first
 					$scope.timestep = $scope.obj.tilevent;
-					functiontopass = '';
 				}
 			}
 			//no events occur while stopped
 			else {
 				$scope.timestep = $scope.obj.tilgo;
 				//fixme now reset tilgo
-				functiontopass = '';
 			}
 		}
 		//if not awake, do nothing but sleep until awake
 		else {
 			$scope.timestep = $scope.obj.tilwake;
 			//fixme now reset tilwake
-			functiontopass = '';
 		}
-		$scope.newLoop(functiontopass); //fixme what function to pass? This one?
-
+		$scope.newLoop();
     };
-
-	//clear localstorage
-	$scope.deleteSave = function(){
-		console.log('delete');
-		localStorage.setItem('peddler', '');
-	};
-
+    
 	//fixme need to include sleeping in here now
 	//given a length of time, work out locations passed through in that time
 	$scope.calculateJourney = function(time){
@@ -273,18 +261,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			}
 		}
 	};
-	
-	$scope.newLoop = function(nextfunction){
-		$scope.incrementTime($scope.timestep);
-
-		//if we're not running in realtime, just call this function again
-		//otherwise it's already handled by an interval
-		if(!$scope.mode){
-			//fixme need to call function here to recalculate $scope.timestep
-			$scope[nextfunction];
-			$scope.newLoop();
-		}
-	};
 
 	//calculate time so far
 	$scope.calcTime = function(){
@@ -304,21 +280,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.incrementTime = function(incrementby){
 		$scope.obj.seconds += (incrementby * $scope.obj.timespeed);
 	};
-
-	//main loop, increases time
-	$scope.loop = function(){
-		//fixme autosave
-
-		$scope.incrementTime(1);
+	
+	$scope.newLoop = function(){
+		$scope.incrementTime($scope.timestep);
+		$scope.calcTime();
+		$scope.timings.checkRest();
 		$scope.timings.checkSleep();
-
-		if($scope.obj.awake){
-			$scope.obj.tilsleep = Math.max(0,$scope.obj.tilsleep - (1 * $scope.obj.timespeed));
-			$scope.calcTime();
-			//console.log($scope.obj.tilsleep);
-
-			//console.log('currdest',$scope.obj.currdest);
-			//switch to the next destination
+		
+		if($scope.obj.awake && $scope.obj.moving){
 			if($scope.obj.actualcurrdestdist === 0){
 	            $scope.checkDests(1);
 	            $scope.doMap();
@@ -334,6 +303,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			$scope.obj.actualcurrdestdist = Math.max(0,$scope.obj.actualcurrdestdist - newdist);
 			$scope.obj.currdestdist = $scope.oneDecimal($scope.obj.actualcurrdestdist);
 		}
+
+		//fixme autosave
 
 		//check for status
 		/*
@@ -363,6 +334,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				energy level
 				health/injury level
 		*/
+
+		//if we're not running in realtime, just call this function again
+		//otherwise it's already handled by an interval
+		if(!$scope.mode){
+			$scope.loadLoop();
+		}
 	};
 
 	//controls time speed
@@ -428,25 +405,67 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	
 	//functions relating to countdowns for sleep, event occurrence, etc.
 	$scope.timings = {
-		//initialise the starting values
-		initialSetup: function(){
-			$scope.obj.awake = 1;
-			$scope.obj.moving = 1;
-			$scope.obj.tilstop = $scope.onehour * 4;
-			$scope.obj.tilgo = $scope.onehour / 2;
-			$scope.obj.tilsleep = $scope.onehour * 16;
-			$scope.obj.sleeplength = $scope.onehour * 8;
-		},
+		//check to see if we need to sleep or wake
 		checkSleep: function(){
-			if($scope.obj.tilsleep === 0){
-				$scope.obj.awake = 0;
-				$scope.obj.sleeplength = Math.max(0,$scope.obj.sleeplength - (1 * $scope.obj.timespeed));
+			if($scope.obj.awake){
+				$scope.obj.tilsleep = Math.max(0,$scope.obj.tilsleep - ($scope.timestep * $scope.obj.timespeed));
+				if($scope.obj.tilsleep === 0){
+					//fixme add time here
+					$scope.messages.create('You stopped to sleep,' + $scope.getTimeNow());
+					$scope.obj.awake = 0;
+					$scope.moving = 0;
+				}
 			}
-			if($scope.obj.sleeplength === 0){
-				$scope.obj.tilsleep = $scope.onehour * 16; //reset time til next sleep
-				$scope.obj.sleeplength = $scope.onehour * 8; //reset sleeptime
+			else {
+				$scope.obj.tilwake = Math.max(0,$scope.obj.tilwake - ($scope.timestep * $scope.obj.timespeed));
+				if($scope.obj.tilwake === 0){
+					//fixme add time here
+					$scope.messages.create('You woke up,' + $scope.getTimeNow());
+					$scope.obj.awake = 1;
+					$scope.obj.moving = 1;
+					$scope.timings.resets.resetTilsleep();
+					$scope.timings.resets.resetTilwake();
+					$scope.timings.resets.resetTilstop();
+				}
 			}
 		},
+		//check to see if we need to stop for a rest or not
+		checkRest: function(){
+			if($scope.obj.awake){
+				if($scope.obj.moving){
+					$scope.obj.tilstop = Math.max(0,$scope.obj.tilstop - ($scope.timestep * $scope.obj.timespeed));
+					//console.log($scope.obj.tilstop);
+					if($scope.obj.tilstop === 0){
+						$scope.messages.create('You stopped for a rest,' + $scope.getTimeNow());
+						$scope.obj.moving = 0;
+					}
+				}
+				else {
+					$scope.obj.tilgo = Math.max(0,$scope.obj.tilgo - ($scope.timestep * $scope.obj.timespeed));
+					if($scope.obj.tilgo === 0){
+						$scope.messages.create('You set off again,' + $scope.getTimeNow());
+						$scope.obj.moving = 1;
+						$scope.timings.resets.resetTilstop();
+						$scope.timings.resets.resetTilgo();
+					}
+				}
+			}
+		},
+		//putting all the resets in one place so I don't have to hunt for them
+		resets: {
+			resetTilstop: function(){
+				$scope.obj.tilstop = $scope.onehour * 2;
+			},
+			resetTilgo: function(){
+				$scope.obj.tilgo = $scope.onehour / 2;
+			},
+			resetTilsleep: function(){
+				$scope.obj.tilsleep = $scope.onehour * 16; //reset time til next sleep
+			},
+			resetTilwake: function(){
+				$scope.obj.tilwake = $scope.onehour * 7; //reset length of sleep
+			}
+		}
 	};
 	
 	//fixme might need to clear up previous markers/lines
@@ -488,7 +507,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 					if(lastloop === points.length){
 						lastloop = 0;
-						console.log('last',$scope.dests[$scope.obj.currdest].type);
+						//console.log('last',$scope.dests[$scope.obj.currdest].type);
 						//draw route between the two points
 						if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane, just draw a straight line
 							var line = new google.maps.Polyline({
