@@ -40,7 +40,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'tilgo':$scope.onehour / 2, //how long before you can start going again fixme this could be varied
 		'tilsleep':$scope.onehour * 16, //how long before you have to sleep
 		'tilwake':$scope.onehour * 7, //how long before you wake up
-		'tilevent':0, //how long until the next event, will be randomised
+		'tilevent':$scope.onehour * 100, //how long until the next event, will be randomised, fixme currently set to really high to not conflict
 
 		'bike': {
 			'weight':1,
@@ -196,39 +196,78 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.load = function(){
         var now = Math.floor(Date.now() / 1000);
         var diff = now - $scope.obj.timestamp;
-        //console.log(diff);
+        $scope.loaddiff = diff;
+        console.log(diff);
         //$scope.calculateJourney(diff);
         $scope.loadLoop();
 	};
 
 	//decide how long until next thing - sleep, rest, new destination, event
 	//call newLoop with that time length and a call to the function to handle the upcoming thing
+	//fixme we need to limit all of this within the size of the diff calculated above (when loading)
 	$scope.loadLoop = function(){
-		if($scope.obj.awake){
-			if($scope.obj.moving){
-				//find which is smallest - time til next stop, next sleep, next event
-				if($scope.obj.tilsleep < $scope.obj.tilstop && $scope.obj.tilsleep < $scope.obj.tilevent){ //tilsleep happens first
-					$scope.timestep = $scope.obj.tilsleep;
-				}
-				else if($scope.obj.tilstop < $scope.obj.tilevent && $scope.obj.tilstop < $scope.obj.tilsleep){ //tilstop happens first
-					$scope.timestep = $scope.obj.tilstop;
-				}
-				else { //tilevent happens first
-					$scope.timestep = $scope.obj.tilevent;
+		console.log('loadLoop');
+		if($scope.loaddiff > 0){
+			var comparing = [
+				$scope.loaddiff,
+				$scope.obj.tilsleep,
+				$scope.obj.tilstop,
+				$scope.obj.tilwake,
+				//$scope.obj.tilevent
+			];
+			var ln = comparing.length;
+			var smallest = 10000000000;
+			var smallestindex = 0;
+			for(var b = 0; b < ln; b++){
+				if(comparing[b] < smallest){
+					smallest = comparing[b];
+					smallestindex = b;
 				}
 			}
-			//no events occur while stopped
+			//smallestindex is now the index of the item in the array that is the smallest
+			if($scope.obj.awake){
+				if($scope.obj.moving){
+					switch(smallestindex){
+						case 0:
+							$scope.timestep = $scope.loaddiff;
+						case 1:
+							$scope.timestep = $scope.tilsleep;
+						case 2:
+							$scope.timestep = $scope.tilstop;
+					}
+				}
+				else {
+				}
+			}
+			//argh FIXME FIXME FIXME
+
+			if($scope.obj.awake){
+				if($scope.obj.moving){
+					//find which is smallest - time til next stop, next sleep, next event
+					if($scope.obj.tilsleep < $scope.obj.tilstop && $scope.obj.tilsleep < $scope.obj.tilevent){ //tilsleep happens first
+						$scope.timestep = $scope.obj.tilsleep;
+					}
+					else if($scope.obj.tilstop < $scope.obj.tilevent && $scope.obj.tilstop < $scope.obj.tilsleep){ //tilstop happens first
+						$scope.timestep = $scope.obj.tilstop;
+					}
+					else { //tilevent happens first
+						$scope.timestep = $scope.obj.tilevent;
+					}
+				}
+				//no events occur while stopped
+				else {
+					$scope.timestep = $scope.obj.tilgo;
+					//fixme now reset tilgo
+				}
+			}
+			//if not awake, do nothing but sleep until awake
 			else {
-				$scope.timestep = $scope.obj.tilgo;
-				//fixme now reset tilgo
+				$scope.timestep = $scope.obj.tilwake;
+				//fixme now reset tilwake
 			}
+			console.log($scope.timestep);
+			$scope.newLoop();
 		}
-		//if not awake, do nothing but sleep until awake
-		else {
-			$scope.timestep = $scope.obj.tilwake;
-			//fixme now reset tilwake
-		}
-		$scope.newLoop();
     };
     
 	//fixme need to include sleeping in here now
@@ -282,6 +321,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	};
 	
 	$scope.newLoop = function(){
+		console.log('newLoop',$scope.timestep);
 		$scope.incrementTime($scope.timestep);
 		$scope.calcTime();
 		$scope.timings.checkRest();
