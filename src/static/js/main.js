@@ -16,6 +16,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
     $scope.infowindow = new google.maps.InfoWindow();
 
 	//all these variables get saved
+	//fixme probably can calculate some of these km/m on the fly now
 	$scope.obj = {
 		'actualdistkm':0, //actual distance peddled, no rounding
 		'totaldistkm':0, //total distance including boats, planes etc.
@@ -24,6 +25,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'currdest':1, //keeps track of which destination we're currently heading to
 		'actualcurrdestdist':0, //actual distance to next location (not rounded, used for calculation)
 		'currdestdist':-1, //display distance to next location (rounded, used for display)
+		'currdesttime':-1, //time to current destination (doesn't need to be human readable)
 
 		'starttime':'',
 		'seconds':0,
@@ -145,7 +147,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
             $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
         }
     };
-
+    
 	//general single function to call if we change gear, weather, etc.
 	$scope.recalcStuff = function(){
 		$scope.calcWeight();
@@ -208,12 +210,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.loadLoop = function(){
 		console.log('loadLoop');
 		if($scope.loaddiff > 0){
+			//find which is smallest - time til next stop, next sleep, next event, etc.
 			var comparing = [
 				$scope.loaddiff,
 				$scope.obj.tilsleep,
 				$scope.obj.tilstop,
 				$scope.obj.tilwake,
-				//$scope.obj.tilevent
+				$scope.obj.currdesttime,
+				//$scope.obj.tilevent //fixme events not implemented yet
 			];
 			var ln = comparing.length;
 			var smallest = 10000000000;
@@ -230,17 +234,32 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					switch(smallestindex){
 						case 0:
 							$scope.timestep = $scope.loaddiff;
+							console.log('loaddiff is next thing to happen');
+							break;
 						case 1:
 							$scope.timestep = $scope.tilsleep;
+							console.log('tilsleep is next thing to happen');
+							break;
 						case 2:
 							$scope.timestep = $scope.tilstop;
+							console.log('tilstop is next thing to happen');
+							break;
+						case 3:
+							$scope.timestep = $scope.currdesttime;
+							console.log('currdesttime is next thing to happen');
+							break;
 					}
 				}
 				else {
+					$scope.timestep = $scope.obj.tilgo;
 				}
 			}
-			//argh FIXME FIXME FIXME
+			else {
+				$scope.timestep = $scope.obj.tilwake;
+			}
+			$scope.newLoop();
 
+/*
 			if($scope.obj.awake){
 				if($scope.obj.moving){
 					//find which is smallest - time til next stop, next sleep, next event
@@ -267,9 +286,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			}
 			console.log($scope.timestep);
 			$scope.newLoop();
+*/
 		}
     };
     
+    //fixme function not in use
 	//fixme need to include sleeping in here now
 	//given a length of time, work out locations passed through in that time
 	$scope.calculateJourney = function(time){
@@ -300,6 +321,13 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			}
 		}
 	};
+	
+    //calculate how long to current destination at current speed
+    $scope.getCurrDestTime = function(){
+		if($scope.obj.moving){
+			$scope.obj.currdesttime = Math.round(($scope.obj.actualcurrdestdist / $scope.obj.speedkmph) * $scope.onehour);
+		}
+	};
 
 	//calculate time so far
 	$scope.calcTime = function(){
@@ -320,28 +348,41 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.obj.seconds += (incrementby * $scope.obj.timespeed);
 	};
 	
+	//increment distance, based on speed
+	$scope.incrementDistance = function(incrementby){
+		var newdist = (($scope.obj.speedkmph / 3600) * $scope.obj.timespeed) * incrementby; //distance in km we've travelled since last
+		//console.log('newdist',newdist);
+		$scope.obj.actualdistkm = $scope.obj.actualdistkm + newdist; //add to total travelled
+
+		$scope.obj.distancemi = $scope.oneDecimal($scope.obj.actualdistkm / 1.6); //convert km travelled to miles travelled
+		$scope.obj.distancekm = $scope.oneDecimal($scope.obj.actualdistkm);
+		$scope.obj.actualcurrdestdist = Math.max(0,$scope.obj.actualcurrdestdist - newdist);
+		$scope.obj.currdestdist = $scope.oneDecimal($scope.obj.actualcurrdestdist);
+	};
+
+	//main loop
 	$scope.newLoop = function(){
 		console.log('newLoop',$scope.timestep);
 		$scope.incrementTime($scope.timestep);
 		$scope.calcTime();
 		$scope.timings.checkRest();
 		$scope.timings.checkSleep();
-		
+
 		if($scope.obj.awake && $scope.obj.moving){
+			$scope.incrementDistance($scope.timestep);
 			if($scope.obj.actualcurrdestdist === 0){
 	            $scope.checkDests(1);
 	            $scope.doMap();
 	        }
+		}
 
-			//increment distance, based on speed
-			var newdist = ($scope.obj.speedkmph / 3600) * $scope.obj.timespeed; //distance in km we've travelled since last
-			//console.log('newdist',newdist);
-			$scope.obj.actualdistkm = $scope.obj.actualdistkm + newdist; //add to total travelled
-
-			$scope.obj.distancemi = $scope.oneDecimal($scope.obj.actualdistkm / 1.6); //convert km travelled to miles travelled
-			$scope.obj.distancekm = $scope.oneDecimal($scope.obj.actualdistkm);
-			$scope.obj.actualcurrdestdist = Math.max(0,$scope.obj.actualcurrdestdist - newdist);
-			$scope.obj.currdestdist = $scope.oneDecimal($scope.obj.actualcurrdestdist);
+		//if we're not running in realtime, call loadloop again
+		//otherwise newLoop is called by an interval
+		$scope.getCurrDestTime();
+		if(!$scope.mode){
+			if($scope.loaddiff){
+				$scope.loadLoop();
+			}
 		}
 
 		//fixme autosave
@@ -353,7 +394,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			reduce bike status/health
 			improve some health conditions
 			reduce some health conditions
-			store a day in seconds then use to create countdown variables, when zero do something 
+			store a day in seconds then use to create countdown variables, when zero do something
 				e.g. $scope.day = 86400, $scope.wear.bike = $scope.day * 3, loop through each, reduce by 1, if zero do something
 		*/
 
@@ -375,11 +416,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				health/injury level
 		*/
 
-		//if we're not running in realtime, just call this function again
-		//otherwise it's already handled by an interval
-		if(!$scope.mode){
-			$scope.loadLoop();
-		}
 	};
 
 	//controls time speed
@@ -476,14 +512,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					$scope.obj.tilstop = Math.max(0,$scope.obj.tilstop - ($scope.timestep * $scope.obj.timespeed));
 					//console.log($scope.obj.tilstop);
 					if($scope.obj.tilstop === 0){
-						$scope.messages.create('You stopped for a rest,' + $scope.getTimeNow());
+						$scope.messages.create('You stopped for a rest, ' + $scope.getTimeNow());
 						$scope.obj.moving = 0;
 					}
 				}
 				else {
 					$scope.obj.tilgo = Math.max(0,$scope.obj.tilgo - ($scope.timestep * $scope.obj.timespeed));
 					if($scope.obj.tilgo === 0){
-						$scope.messages.create('You set off again,' + $scope.getTimeNow());
+						$scope.messages.create('You set off again, ' + $scope.getTimeNow());
 						$scope.obj.moving = 1;
 						$scope.timings.resets.resetTilstop();
 						$scope.timings.resets.resetTilgo();
