@@ -196,69 +196,103 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//called on init if save found
 	$scope.load = function(){
+		$scope.mode = 0;
         var now = Math.floor(Date.now() / 1000);
         var diff = now - $scope.obj.timestamp;
         $scope.loaddiff = diff;
-        console.log(diff);
+        console.log('Offline for:',diff);
         //$scope.calculateJourney(diff);
         $scope.loadLoop();
+	};
+	
+	//given an array of numbers, return the index of the smallest
+	$scope.timeComparison = function(compare){
+		console.log('loadLoop',compare);
+		var ln = compare.length;
+		var smallest = 10000000000;
+		var smallestindex = 0;
+		for(var b = 0; b < ln; b++){
+			if(compare[b] < smallest){
+				smallest = compare[b];
+				smallestindex = b;
+			}
+		}
+		return smallestindex;
 	};
 
 	//decide how long until next thing - sleep, rest, new destination, event
 	//call newLoop with that time length and a call to the function to handle the upcoming thing
 	//fixme we need to limit all of this within the size of the diff calculated above (when loading)
 	$scope.loadLoop = function(){
-		console.log('loadLoop');
 		if($scope.loaddiff > 0){
-			//find which is smallest - time til next stop, next sleep, next event, etc.
-			var comparing = [
-				$scope.loaddiff,
-				$scope.obj.tilsleep,
-				$scope.obj.tilstop,
-				$scope.obj.tilwake,
-				$scope.obj.currdesttime,
-				//$scope.obj.tilevent //fixme events not implemented yet
-			];
-			var ln = comparing.length;
-			var smallest = 10000000000;
-			var smallestindex = 0;
-			for(var b = 0; b < ln; b++){
-				if(comparing[b] < smallest){
-					smallest = comparing[b];
-					smallestindex = b;
-				}
-			}
-			//smallestindex is now the index of the item in the array that is the smallest
+			var comparing = [];
+			var smallest = 0;
 			if($scope.obj.awake){
 				if($scope.obj.moving){
-					switch(smallestindex){
+					//find which is smallest - time til next stop, next sleep, next event, etc.
+					comparing = [
+						$scope.loaddiff,
+						$scope.obj.tilsleep,
+						$scope.obj.tilstop,
+						$scope.obj.currdesttime,
+						//$scope.obj.tilevent //fixme events not implemented yet
+					];
+					smallest = $scope.timeComparison(comparing);
+					//smallestindex is now the index of the item in the array that is the smallest
+					switch(smallest){
 						case 0:
 							$scope.timestep = $scope.loaddiff;
 							console.log('loaddiff is next thing to happen');
 							break;
 						case 1:
-							$scope.timestep = $scope.tilsleep;
+							$scope.timestep = $scope.obj.tilsleep;
 							console.log('tilsleep is next thing to happen');
 							break;
 						case 2:
-							$scope.timestep = $scope.tilstop;
-							console.log('tilstop is next thing to happen');
+							$scope.timestep = $scope.obj.tilstop;
+							console.log('tilstop is next thing to happen',$scope.obj.tilstop);
 							break;
 						case 3:
-							$scope.timestep = $scope.currdesttime;
+							$scope.timestep = $scope.obj.currdesttime;
 							console.log('currdesttime is next thing to happen');
 							break;
 					}
 				}
-				else {
-					$scope.timestep = $scope.obj.tilgo;
+				else { //not moving, so on a rest
+					comparing = [
+						$scope.loaddiff,
+						$scope.obj.tilgo,
+					];
+					smallest = $scope.timeComparison(comparing);
+					switch(smallest){
+						case 0:
+							$scope.timestep = $scope.loaddiff;
+							console.log('loaddiff is next thing to happen');
+							break;
+						case 1:
+							$scope.timestep = $scope.obj.tilgo;
+							console.log('tilgo is next thing to happen');
+							break;
+					}
 				}
 			}
-			else {
+			else { //asleep
+				comparing = [
+					$scope.loaddiff,
+					$scope.obj.tilwake,
+				];
+				smallest = $scope.timeComparison(comparing);
+				//fixme add in the switch above
+
 				$scope.timestep = $scope.obj.tilwake;
 			}
+			$scope.loaddiff = Math.max(0,$scope.loaddiff - $scope.timestep);
 			$scope.newLoop();
-
+		}
+		else {
+			console.log('diff used up, returning to normal operation');
+			$scope.mode = 1;
+		}
 /*
 			if($scope.obj.awake){
 				if($scope.obj.moving){
@@ -287,12 +321,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			console.log($scope.timestep);
 			$scope.newLoop();
 */
-		}
     };
     
     //fixme function not in use
 	//fixme need to include sleeping in here now
 	//given a length of time, work out locations passed through in that time
+	/*
 	$scope.calculateJourney = function(time){
 		//given time, translate time and current speed into distance covered in that time, km
 		var dist = ($scope.obj.speedkmph / $scope.onehour) * time;
@@ -321,7 +355,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			}
 		}
 	};
-	
+	*/
+
     //calculate how long to current destination at current speed
     $scope.getCurrDestTime = function(){
 		if($scope.obj.moving){
@@ -344,8 +379,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	
 	//generic function to increase the amount of time that has elapsed.
 	//called both by the main loop (per second) and by the load functionality
-	$scope.incrementTime = function(incrementby){
-		$scope.obj.seconds += (incrementby * $scope.obj.timespeed);
+	$scope.incrementTime = function(){
+		$scope.obj.seconds += ($scope.timestep * $scope.obj.timespeed);
 	};
 	
 	//increment distance, based on speed
@@ -362,8 +397,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//main loop
 	$scope.newLoop = function(){
-		console.log('newLoop',$scope.timestep);
-		$scope.incrementTime($scope.timestep);
+		console.log('newLoop, timestep is:',$scope.timestep);
+		$scope.incrementTime();
 		$scope.calcTime();
 		$scope.timings.checkRest();
 		$scope.timings.checkSleep();
@@ -380,6 +415,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//otherwise newLoop is called by an interval
 		$scope.getCurrDestTime();
 		if(!$scope.mode){
+			console.log('mode = loading, continuing');
 			if($scope.loaddiff){
 				$scope.loadLoop();
 			}
