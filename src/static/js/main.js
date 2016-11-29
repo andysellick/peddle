@@ -1,5 +1,9 @@
 /* globals angular, dests, google */
 
+if(!Date.now){
+	Date.now = function(){ return new Date().getTime(); };
+}
+
 //angular.module('peddler', []).controller('peddlerController',function($scope,$http,$window,$timeout,$compile){
 angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
 	$scope.weight = 0;
@@ -38,7 +42,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 		'awake':1, //trigger to tell if we're asleep or not
 		'moving':1, //currently moving or not
-		'tilstop':$scope.onehour * 2, //how long you can go without a rest fixme this could be varied
+		'tilstop':$scope.onehour * 2, //how long you can go without a rest fixme this could be varied fixme
 		'tilgo':$scope.onehour / 2, //how long before you can start going again fixme this could be varied
 		'tilsleep':$scope.onehour * 16, //how long before you have to sleep
 		'tilwake':$scope.onehour * 7, //how long before you wake up
@@ -100,6 +104,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//otherwise do some initial setup
 		else {
 			$scope.messages.create('You have begun your journey, ' + $scope.getTimeNow());
+			$scope.obj.starttime = Date.now(); //stores the start time in timestamp milliseconds, will need later for loading calculations
 		}
 		if(!$scope.obj.pause){
 			$scope.start();
@@ -117,11 +122,25 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.timestep = 1;
 		$scope.mode = 1;
 	};
+	
+	$scope.pad = function(n, width, z) {
+		z = z || '0';
+		n = n + '';
+		return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+	};
 
 	//get the actual date time right now
 	$scope.getTimeNow = function(){
-		var currentdate = new Date();
-		return currentdate.getDate() + '/' + (currentdate.getMonth()+1)  + '/' + currentdate.getFullYear() + ' @ ' + currentdate.getHours() + ':' + currentdate.getMinutes() + ':' + currentdate.getSeconds();
+		var rd;
+		if($scope.mode){
+			rd = new Date();
+		}
+		else {
+			rd = $scope.obj.starttime + ($scope.obj.seconds * 1000); //convert obj.seconds to milliseconds
+			rd = new Date(rd);
+			console.log($scope.obj.starttime,$scope.obj.seconds * 1000,rd);
+		}
+		return rd.getDate() + '/' + $scope.pad((rd.getMonth()+1),2)  + '/' + rd.getFullYear() + ' @ ' + $scope.pad(rd.getHours(),2) + ':' + $scope.pad(rd.getMinutes(),2) + ':' + $scope.pad(rd.getSeconds(),2);
 	};
 
 	//initialise destinations and change destinations
@@ -282,9 +301,16 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					$scope.obj.tilwake,
 				];
 				smallest = $scope.timeComparison(comparing);
-				//fixme add in the switch above
-
-				$scope.timestep = $scope.obj.tilwake;
+				switch(smallest){
+					case 0:
+						$scope.timestep = $scope.loaddiff;
+						console.log('loaddiff is next thing to happen');
+						break;
+					case 1:
+						$scope.timestep = $scope.obj.tilwake;
+						console.log('tilwake is next thing to happen');
+						break;
+				}
 			}
 			$scope.loaddiff = Math.max(0,$scope.loaddiff - $scope.timestep);
 			$scope.newLoop();
@@ -293,34 +319,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			console.log('diff used up, returning to normal operation');
 			$scope.mode = 1;
 		}
-/*
-			if($scope.obj.awake){
-				if($scope.obj.moving){
-					//find which is smallest - time til next stop, next sleep, next event
-					if($scope.obj.tilsleep < $scope.obj.tilstop && $scope.obj.tilsleep < $scope.obj.tilevent){ //tilsleep happens first
-						$scope.timestep = $scope.obj.tilsleep;
-					}
-					else if($scope.obj.tilstop < $scope.obj.tilevent && $scope.obj.tilstop < $scope.obj.tilsleep){ //tilstop happens first
-						$scope.timestep = $scope.obj.tilstop;
-					}
-					else { //tilevent happens first
-						$scope.timestep = $scope.obj.tilevent;
-					}
-				}
-				//no events occur while stopped
-				else {
-					$scope.timestep = $scope.obj.tilgo;
-					//fixme now reset tilgo
-				}
-			}
-			//if not awake, do nothing but sleep until awake
-			else {
-				$scope.timestep = $scope.obj.tilwake;
-				//fixme now reset tilwake
-			}
-			console.log($scope.timestep);
-			$scope.newLoop();
-*/
     };
     
     //fixme function not in use
