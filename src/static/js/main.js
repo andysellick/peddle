@@ -20,15 +20,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
     $scope.infowindow = new google.maps.InfoWindow();
 
 	//all these variables get saved
-	//fixme probably can calculate some of these km/m on the fly now
 	$scope.obj = {
-		'actualdistkm':0, //actual distance peddled, no rounding
+		'distkm':0, //actual distance peddled
 		'totaldistkm':0, //total distance including boats, planes etc.
-		'distancekm':0, //display distance, rounded
 		'distancemi':0,
 		'currdest':1, //keeps track of which destination we're currently heading to
-		'actualcurrdestdist':0, //actual distance to next location (not rounded, used for calculation)
-		'currdestdist':-1, //display distance to next location (rounded, used for display)
+		'currdestdist':-1, //display distance to next location
 		'currdesttime':-1, //time to current destination (doesn't need to be human readable)
 
 		'starttime':'',
@@ -42,11 +39,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 		'awake':1, //trigger to tell if we're asleep or not
 		'moving':1, //currently moving or not
-		'tilstop':$scope.onehour * 2, //how long you can go without a rest fixme this could be varied fixme
+		'tilstop':$scope.onehour * 3, //how long you can go without a rest fixme this could be varied fixme
 		'tilgo':$scope.onehour / 2, //how long before you can start going again fixme this could be varied
 		'tilsleep':$scope.onehour * 16, //how long before you have to sleep
 		'tilwake':$scope.onehour * 7, //how long before you wake up
 		'tilevent':$scope.onehour * 100, //how long until the next event, will be randomised, fixme currently set to really high to not conflict
+		'onplaneboat':0, //flag to show if we're on a plane or a boat, as opposed to cycling. If not cycling, counts as a rest
 
 		'bike': {
 			'weight':1,
@@ -103,7 +101,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 		//otherwise do some initial setup
 		else {
-			$scope.messages.create('You have begun your journey, ' + $scope.getTimeNow());
+			$scope.messages.create('You have begun your journey',$scope.getTimeNow(),1);
 			$scope.obj.starttime = Date.now(); //stores the start time in timestamp milliseconds, will need later for loading calculations
 		}
 		if(!$scope.obj.pause){
@@ -123,6 +121,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.mode = 1;
 	};
 	
+	//pad a digit with a given number of leading zeroes
 	$scope.pad = function(n, width, z) {
 		z = z || '0';
 		n = n + '';
@@ -146,24 +145,30 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//initialise destinations and change destinations
 	$scope.checkDests = function(increment){
 		//console.log('checkDests',$scope.obj.currdest,$scope.dests[$scope.obj.currdest]);
-  		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
   		//change destination
 		if(increment){
             $scope.obj.currdest++;
-            $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
+            $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
             //console.log($scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
-            $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime);
-            if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){
+            $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),1);
+			if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane
+				console.log('currently on a boat/plane');
+				$scope.obj.onplaneboat = $scope.dests[$scope.obj.currdest].type;
+				$scope.timings.resets.resetTilsleep();
+				$scope.timings.resets.resetTilwake();
+				$scope.timings.resets.resetTilstop();
 				//console.log('type:',$scope.dests[$scope.obj.currdest].type);
-				//if type, draw polyline
-				//if not, draw directions
+			}
+			else {
+				$scope.obj.onplaneboat = 0;
 			}
 		}
+  		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
   		$scope.prevdest = Math.max(0,$scope.obj.currdest - 1);
 	    $scope.prevdest = $scope.dests[$scope.prevdest].name;
   		$scope.currcountry = $scope.dests[$scope.obj.currdest].loc;
   		if($scope.obj.currdestdist === -1){
-            $scope.obj.actualcurrdestdist = $scope.dests[$scope.obj.currdest].dist;
+            $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
         }
     };
     
@@ -226,7 +231,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	
 	//given an array of numbers, return the index of the smallest
 	$scope.timeComparison = function(compare){
-		console.log('loadLoop',compare);
+		console.log('timeComparison',compare);
 		var ln = compare.length;
 		var smallest = 10000000000;
 		var smallestindex = 0;
@@ -241,7 +246,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//decide how long until next thing - sleep, rest, new destination, event
 	//call newLoop with that time length and a call to the function to handle the upcoming thing
-	//fixme we need to limit all of this within the size of the diff calculated above (when loading)
 	$scope.loadLoop = function(){
 		if($scope.loaddiff > 0){
 			var comparing = [];
@@ -249,13 +253,21 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			if($scope.obj.awake){
 				if($scope.obj.moving){
 					//find which is smallest - time til next stop, next sleep, next event, etc.
-					comparing = [
-						$scope.loaddiff,
-						$scope.obj.tilsleep,
-						$scope.obj.tilstop,
-						$scope.obj.currdesttime,
-						//$scope.obj.tilevent //fixme events not implemented yet
-					];
+					if($scope.obj.onplaneboat){ //if we're not cycling, don't consider time til next rest/sleep
+						comparing = [
+							$scope.loaddiff,
+							$scope.obj.currdesttime,
+						];
+					}
+					else {
+						comparing = [
+							$scope.loaddiff,
+							$scope.obj.currdesttime,
+							$scope.obj.tilstop,
+							$scope.obj.tilsleep,
+							//$scope.obj.tilevent //fixme events not implemented yet
+						];
+					}
 					smallest = $scope.timeComparison(comparing);
 					//smallestindex is now the index of the item in the array that is the smallest
 					switch(smallest){
@@ -264,16 +276,16 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 							console.log('loaddiff is next thing to happen');
 							break;
 						case 1:
-							$scope.timestep = $scope.obj.tilsleep;
-							console.log('tilsleep is next thing to happen');
+							$scope.timestep = $scope.obj.currdesttime;
+							console.log('currdesttime is next thing to happen');
 							break;
 						case 2:
 							$scope.timestep = $scope.obj.tilstop;
 							console.log('tilstop is next thing to happen',$scope.obj.tilstop);
 							break;
 						case 3:
-							$scope.timestep = $scope.obj.currdesttime;
-							console.log('currdesttime is next thing to happen');
+							$scope.timestep = $scope.obj.tilsleep;
+							console.log('tilsleep is next thing to happen');
 							break;
 					}
 				}
@@ -321,44 +333,10 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
     };
     
-    //fixme function not in use
-	//fixme need to include sleeping in here now
-	//given a length of time, work out locations passed through in that time
-	/*
-	$scope.calculateJourney = function(time){
-		//given time, translate time and current speed into distance covered in that time, km
-		var dist = ($scope.obj.speedkmph / $scope.onehour) * time;
-		console.log('You would have travelled ',dist,'km');
-		var tmp = 0;
-		//loop through destinations
-		for(var x = $scope.obj.currdest; x < $scope.dests.length; x++){
-			//fixme does this account for the fact that we're likely to be midway between destinations?
-			if(dist > $scope.obj.actualcurrdestdist){
-				//calculate how much time should be used up getting to this destination
-				//subtract from diff (time) and add to $scope.obj.seconds
-				tmp = ($scope.dests[x].dist / $scope.obj.speedkmph) * $scope.onehour;
-				$scope.incrementTime(tmp);
-				time -= tmp;
-				$scope.calcTime();
-				$scope.checkDests(1); //call function to check destinations and increment to next one
-				dist -= $scope.dests[x].dist;
-				$scope.obj.actualdistkm += $scope.dests[x].dist;
-			}
-			else {
-				//add remaining time from diff (time) to $scope.obj.seconds
-				$scope.obj.seconds += time;
-				$scope.obj.actualcurrdestdist -= dist;
-				$scope.obj.actualdistkm += dist;
-				break;
-			}
-		}
-	};
-	*/
-
     //calculate how long to current destination at current speed
     $scope.getCurrDestTime = function(){
 		if($scope.obj.moving){
-			$scope.obj.currdesttime = Math.round(($scope.obj.actualcurrdestdist / $scope.obj.speedkmph) * $scope.onehour);
+			$scope.obj.currdesttime = Math.round(($scope.obj.currdestdist / $scope.obj.speedkmph) * $scope.onehour);
 		}
 	};
 
@@ -385,12 +363,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.incrementDistance = function(incrementby){
 		var newdist = (($scope.obj.speedkmph / 3600) * $scope.obj.timespeed) * incrementby; //distance in km we've travelled since last
 		//console.log('newdist',newdist);
-		$scope.obj.actualdistkm = $scope.obj.actualdistkm + newdist; //add to total travelled
+		$scope.obj.distkm = $scope.obj.distkm + newdist; //add to total travelled
 
-		$scope.obj.distancemi = $scope.oneDecimal($scope.obj.actualdistkm / 1.6); //convert km travelled to miles travelled
-		$scope.obj.distancekm = $scope.oneDecimal($scope.obj.actualdistkm);
-		$scope.obj.actualcurrdestdist = Math.max(0,$scope.obj.actualcurrdestdist - newdist);
-		$scope.obj.currdestdist = $scope.oneDecimal($scope.obj.actualcurrdestdist);
+		$scope.obj.distancemi = $scope.oneDecimal($scope.obj.distkm / 1.6); //convert km travelled to miles travelled
+		//$scope.obj.distancekm = $scope.oneDecimal($scope.obj.distkm);
+		$scope.obj.currdestdist = Math.max(0,$scope.obj.currdestdist - newdist);
+		//$scope.obj.currdestdist = $scope.oneDecimal($scope.obj.currdestdist);
 	};
 
 	//main loop
@@ -398,12 +376,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		console.log('newLoop, timestep is:',$scope.timestep);
 		$scope.incrementTime();
 		$scope.calcTime();
-		$scope.timings.checkRest();
-		$scope.timings.checkSleep();
+		if(!$scope.obj.onplaneboat){
+			$scope.timings.checkRest();
+			$scope.timings.checkSleep(); //fixme need to decide what to do about sleep on a boat/plane, also need to set speed accordingly
+		}
 
 		if($scope.obj.awake && $scope.obj.moving){
 			$scope.incrementDistance($scope.timestep);
-			if($scope.obj.actualcurrdestdist === 0){
+			if($scope.obj.currdestdist === 0){
 	            $scope.checkDests(1);
 	            $scope.doMap();
 	        }
@@ -504,12 +484,25 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	};
 	
 	$scope.messages = {
-		create: function(m){
-			$scope.obj.messages.push({'text':m,'show':1});
+		//message types: 1 destinations, 2 rest/sleep, 3 events
+		create: function(m,datetime,mtype){
+			$scope.obj.messages.push({'text':m,'show':1,'datetime':datetime,'type':mtype});
 		},
 		hide: function(i){
 			console.log(i);
 			$scope.obj.messages[i].show = 0;
+		},
+		showOfType: function(show){
+			var len = $scope.obj.messages.length;
+			for(var m = 0; m < len; m++){
+				console.log($scope.obj.messages[m]);
+				if($scope.obj.messages[m].type === show){
+					$scope.obj.messages[m].show = 1;
+				}
+				else {
+					$scope.obj.messages[m].show = 0;
+				}
+			}
 		}
 	};
 	
@@ -520,8 +513,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			if($scope.obj.awake){
 				$scope.obj.tilsleep = Math.max(0,$scope.obj.tilsleep - ($scope.timestep * $scope.obj.timespeed));
 				if($scope.obj.tilsleep === 0){
-					//fixme add time here
-					$scope.messages.create('You stopped to sleep,' + $scope.getTimeNow());
+					$scope.messages.create('You stopped to sleep',$scope.getTimeNow(),2);
 					$scope.obj.awake = 0;
 					$scope.moving = 0;
 				}
@@ -530,7 +522,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				$scope.obj.tilwake = Math.max(0,$scope.obj.tilwake - ($scope.timestep * $scope.obj.timespeed));
 				if($scope.obj.tilwake === 0){
 					//fixme add time here
-					$scope.messages.create('You woke up,' + $scope.getTimeNow());
+					$scope.messages.create('You woke up',$scope.getTimeNow(),2);
 					$scope.obj.awake = 1;
 					$scope.obj.moving = 1;
 					$scope.timings.resets.resetTilsleep();
@@ -546,14 +538,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					$scope.obj.tilstop = Math.max(0,$scope.obj.tilstop - ($scope.timestep * $scope.obj.timespeed));
 					//console.log($scope.obj.tilstop);
 					if($scope.obj.tilstop === 0){
-						$scope.messages.create('You stopped for a rest, ' + $scope.getTimeNow());
+						$scope.messages.create('You stopped for a rest',$scope.getTimeNow(),2);
 						$scope.obj.moving = 0;
 					}
 				}
 				else {
 					$scope.obj.tilgo = Math.max(0,$scope.obj.tilgo - ($scope.timestep * $scope.obj.timespeed));
 					if($scope.obj.tilgo === 0){
-						$scope.messages.create('You set off again, ' + $scope.getTimeNow());
+						$scope.messages.create('You set off again',$scope.getTimeNow(),2);
 						$scope.obj.moving = 1;
 						$scope.timings.resets.resetTilstop();
 						$scope.timings.resets.resetTilgo();
@@ -564,7 +556,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//putting all the resets in one place so I don't have to hunt for them
 		resets: {
 			resetTilstop: function(){
-				$scope.obj.tilstop = $scope.onehour * 2;
+				$scope.obj.tilstop = $scope.onehour * 3;
 			},
 			resetTilgo: function(){
 				$scope.obj.tilgo = $scope.onehour / 2;
@@ -577,7 +569,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			}
 		}
 	};
-	
+
 	//fixme might need to clear up previous markers/lines
 	$scope.doMap = function(){
         //only create a map if it doesn't exist already
