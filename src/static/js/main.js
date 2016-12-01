@@ -13,17 +13,20 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.mode = 1; //mode indicates whether we're running in realtime (1) or simulated (0, loading)
 	$scope.timestep = 1; //defaults to 1 second, unless we're loading, in which case we negotiate time in larger chunks
 
+	$scope.boatplanespeeds = [0,40,900];
+
     //map variables
     $scope.map = 0;
     $scope.markers = [];
     //$scope.infolinks = [];
     $scope.infowindow = new google.maps.InfoWindow();
+    $scope.routecolours = ['blue','green'];
+    $scope.currcolour = 0;
 
 	//all these variables get saved
 	$scope.obj = {
 		'distkm':0, //actual distance peddled
 		'totaldistkm':0, //total distance including boats, planes etc.
-		'distancemi':0,
 		'currdest':1, //keeps track of which destination we're currently heading to
 		'currdestdist':-1, //display distance to next location
 		'currdesttime':-1, //time to current destination (doesn't need to be human readable)
@@ -32,18 +35,27 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'seconds':0,
 		'totaltime':0, //human readable form of time taken
 		'speedkmph':30,
-		'speedmph':0,
+		'speedkmphstored':0, //used to store our original speed while it changes e.g. if on a boat fixme
 		'timespeed':1,
 		'timestamp':0,
 		'pause':0,
 
+		//fixme maybe an option for how long between rests - that alters how much sleep needed?
 		'awake':1, //trigger to tell if we're asleep or not
 		'moving':1, //currently moving or not
-		'tilstop':$scope.onehour * 3, //how long you can go without a rest fixme this could be varied fixme
-		'tilgo':$scope.onehour / 2, //how long before you can start going again fixme this could be varied
-		'tilsleep':$scope.onehour * 16, //how long before you have to sleep
-		'tilwake':$scope.onehour * 7, //how long before you wake up
-		'tilevent':$scope.onehour * 100, //how long until the next event, will be randomised, fixme currently set to really high to not conflict
+		'tilstop':0,
+		'tilgo':0,
+		'tilsleep':0,
+		'tilwake':0,
+		'tilevent':0,
+
+		//these are the stored values for resting/sleeping, will be used for resets and can be varied fixme
+		'tilstopstored':$scope.onehour * 3, //how long you can go without a rest
+		'tilgostored':$scope.onehour / 3, //how long before you can start going again
+		'tilsleepstored':$scope.onehour * 17, //how long before you have to sleep
+		'tilwakestored':$scope.onehour * 7, //how long before you wake up
+		'tileventstored':$scope.onehour * 100, //how long until the next event, will be randomised, fixme currently set to really high to not conflict
+
 		'onplaneboat':0, //flag to show if we're on a plane or a boat, as opposed to cycling. If not cycling, counts as a rest
 
 		'bike': {
@@ -101,6 +113,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 		//otherwise do some initial setup
 		else {
+			$scope.obj.tilstop = $scope.obj.tilstopstored;
+			$scope.obj.tilgo = $scope.obj.tilgostored;
+			$scope.obj.tilsleep = $scope.obj.tilsleepstored;
+			$scope.obj.tilwake = $scope.obj.tilwakestored;
+			$scope.obj.tilevent = $scope.obj.tileventstored;
 			$scope.messages.create('You have begun your journey',$scope.getTimeNow(),1);
 			$scope.obj.starttime = Date.now(); //stores the start time in timestamp milliseconds, will need later for loading calculations
 		}
@@ -147,6 +164,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//console.log('checkDests',$scope.obj.currdest,$scope.dests[$scope.obj.currdest]);
   		//change destination
 		if(increment){
+	  		$scope.currdest = $scope.dests[$scope.obj.currdest].name; //fixme this line is duplicated below
             $scope.obj.currdest++;
             $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
             //console.log($scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
@@ -158,9 +176,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				$scope.timings.resets.resetTilwake();
 				$scope.timings.resets.resetTilstop();
 				//console.log('type:',$scope.dests[$scope.obj.currdest].type);
+				$scope.obj.speedkmphstored = $scope.obj.speedkmph;
+				$scope.obj.speedkmph = $scope.boatplanespeeds[$scope.dests[$scope.obj.currdest].type];
 			}
 			else {
 				$scope.obj.onplaneboat = 0;
+				$scope.obj.speedkmph = $scope.obj.speedkmphstored;
 			}
 		}
   		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
@@ -175,7 +196,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//general single function to call if we change gear, weather, etc.
 	$scope.recalcStuff = function(){
 		$scope.calcWeight();
-		$scope.calcSpeed();
+		//$scope.calcSpeed();
 	};
 
 	var promise;
@@ -336,7 +357,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
     //calculate how long to current destination at current speed
     $scope.getCurrDestTime = function(){
 		if($scope.obj.moving){
-			$scope.obj.currdesttime = Math.round(($scope.obj.currdestdist / $scope.obj.speedkmph) * $scope.onehour);
+			$scope.obj.currdesttime = ($scope.obj.currdestdist / $scope.obj.speedkmph) * $scope.onehour;
 		}
 	};
 
@@ -349,7 +370,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		totaltime -= hours * 3600;
 		var minutes = Math.floor(totaltime / 60) % 60;
 		totaltime -= minutes * 60;
-		var seconds = totaltime % 60;
+		var seconds = Math.floor(totaltime % 60);
+		//fixme maybe not output zero values?
 		$scope.obj.totaltime = days + ' days, ' + hours + ' hours, ' + minutes + ' minutes, ' + seconds + ' seconds';
 	};
 	
@@ -365,7 +387,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//console.log('newdist',newdist);
 		$scope.obj.distkm = $scope.obj.distkm + newdist; //add to total travelled
 
-		$scope.obj.distancemi = $scope.oneDecimal($scope.obj.distkm / 1.6); //convert km travelled to miles travelled
 		//$scope.obj.distancekm = $scope.oneDecimal($scope.obj.distkm);
 		$scope.obj.currdestdist = Math.max(0,$scope.obj.currdestdist - newdist);
 		//$scope.obj.currdestdist = $scope.oneDecimal($scope.obj.currdestdist);
@@ -454,6 +475,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	};
 	
 	//should return metres to travel per second
+	//fixme what is the point of this function??? will be useful later, presumably
 	$scope.calcSpeed = function(){
 		//add temperature as contributing factor
 		//add clothing as gear - heavier clothing warmer, but more drag
@@ -461,7 +483,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//calculate speed
 		/*
 			assume base speed, e.g. 20mph / 32kmph (10 miles approx 16km)
-
 			based on:
 				gear weight
 				bike weight
@@ -473,14 +494,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			should be able to come up with a distance per second amount, weighted by these factors, that we then add to total distance
 		*/
 		//$scope.obj.speedkmph = Math.round(($scope.obj.speedm / 1000) * 3600);
-		$scope.obj.speedkmph = $scope.oneDecimal($scope.obj.speedkmph);
-		$scope.obj.speedmph = $scope.oneDecimal(Math.round($scope.obj.speedkmph / 1.60934));
+		$scope.obj.speedkmph = $scope.obj.speedkmph; //fixme this used to be rounded to display a sensible number in the FE but now it's redundant
 	};
-	
+
+	//fixme this is just for testing and breaks some of the functionality
 	$scope.changeSpeed = function(changeby){
         //console.log($scope.obj.speedkmph,changeby);
 		$scope.obj.speedkmph += changeby;
-		$scope.calcSpeed();
+		//$scope.calcSpeed();
 	};
 	
 	$scope.messages = {
@@ -496,7 +517,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			var len = $scope.obj.messages.length;
 			for(var m = 0; m < len; m++){
 				console.log($scope.obj.messages[m]);
-				if($scope.obj.messages[m].type === show){
+				if($scope.obj.messages[m].type === show || show === 0){
 					$scope.obj.messages[m].show = 1;
 				}
 				else {
@@ -509,13 +530,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//functions relating to countdowns for sleep, event occurrence, etc.
 	$scope.timings = {
 		//check to see if we need to sleep or wake
+		//fixme need to zero speed
 		checkSleep: function(){
 			if($scope.obj.awake){
 				$scope.obj.tilsleep = Math.max(0,$scope.obj.tilsleep - ($scope.timestep * $scope.obj.timespeed));
 				if($scope.obj.tilsleep === 0){
 					$scope.messages.create('You stopped to sleep',$scope.getTimeNow(),2);
 					$scope.obj.awake = 0;
-					$scope.moving = 0;
+					$scope.obj.moving = 0;
 				}
 			}
 			else {
@@ -532,6 +554,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			}
 		},
 		//check to see if we need to stop for a rest or not
+		//fixme need to zero speed
 		checkRest: function(){
 			if($scope.obj.awake){
 				if($scope.obj.moving){
@@ -556,16 +579,16 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//putting all the resets in one place so I don't have to hunt for them
 		resets: {
 			resetTilstop: function(){
-				$scope.obj.tilstop = $scope.onehour * 3;
+				$scope.obj.tilstop = $scope.obj.tilstopstored;
 			},
 			resetTilgo: function(){
-				$scope.obj.tilgo = $scope.onehour / 2;
+				$scope.obj.tilgo = $scope.obj.tilgostored;
 			},
 			resetTilsleep: function(){
-				$scope.obj.tilsleep = $scope.onehour * 16; //reset time til next sleep
+				$scope.obj.tilsleep = $scope.obj.tilsleepstored;
 			},
 			resetTilwake: function(){
-				$scope.obj.tilwake = $scope.onehour * 7; //reset length of sleep
+				$scope.obj.tilwake = $scope.obj.tilwakestored;
 			}
 		}
 	};
@@ -618,7 +641,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 									latlngpoints[1]
 								],
 								strokeColor: '#FF0000',
-								strokeOpacity: 0.6,
+								strokeOpacity: 0.5,
 								strokeWeight: 5,
 								map: $scope.map
 							});
@@ -627,17 +650,32 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 							var request = {
 								origin: latlngpoints[0],
 								destination: latlngpoints[1],
-								travelMode: google.maps.TravelMode.DRIVING
+								travelMode: google.maps.TravelMode.BICYCLING
 							};
-							var directionsDisplay = new google.maps.DirectionsRenderer({suppressMarkers: true});
+							//fixme must be a cleaner way of doing this, also might want to expand at some point
+							if($scope.currcolour === 0){
+								$scope.currcolour = 1;
+							}
+							else {
+								$scope.currcolour = 0;
+							}
+							var directionsDisplay = new google.maps.DirectionsRenderer({
+								suppressMarkers: true,
+								polylineOptions: {
+									strokeColor: $scope.routecolours[$scope.currcolour],
+									strokeOpacity: 0.5,
+									strokeWeight: 5
+							    }
+							});
 							directionsDisplay.setMap($scope.map);
 							var directionsService = new google.maps.DirectionsService();
 							directionsService.route(request, function (response, status) {
 								if (status === google.maps.DirectionsStatus.OK) {
 									directionsDisplay.setDirections(response);
+									console.log('Directions service returned:',response);
 									directionsDisplay.setMap($scope.map);
 								} else {
-									//alert("Directions Request from " + start.toUrlValue(6) + " to " + end.toUrlValue(6) + " failed: " + status);
+									console.log('Directions Request from ' + request.origin.toUrlValue(6) + ' to ' + request.destination.toUrlValue(6) + ' failed: ' + status);
 								}
 							});
 						}

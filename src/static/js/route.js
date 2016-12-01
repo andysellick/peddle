@@ -10,8 +10,12 @@ var dests = [
 	'dist':0,
 	'loc':'England'
 },
+{	'name':'Maidstone',
+	'dist':66,
+	'loc':'England'
+},
 {	'name':'Dover',
-	'dist':123,
+	'dist':75,
 	'loc':'England'
 },
 {	'name':'Calais',
