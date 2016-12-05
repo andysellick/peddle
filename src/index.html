@@ -57,7 +57,7 @@
 			<p>Distance to current destination: {{ obj.currdestdist|number:2 }}km</p>
 			<p>Time to current destination: {{ obj.currdesttime / onehour | number:2 }} hours</p>
 			<p>Time: {{ obj.totaltime }}</p>
-			<p>Total seconds: {{ obj.seconds }}</p>
+			<p>Total seconds: {{ obj.seconds * 10000000 | number:0 }} ({{ obj.seconds |number:7 }})</p>
 			<hr/>
 			<p>Awake: {{ obj.awake }}, Moving: {{ obj.moving }}</p>
 			<p data-ng-if="obj.moving">Time til rest: {{ obj.tilstop / onehour | number:2 }} hours</p>

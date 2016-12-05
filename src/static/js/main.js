@@ -9,6 +9,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.weight = 0;
 	$scope.oneday = 86400; //number of seconds in one day
 	$scope.onehour = 3600; //number of seconds in an hour
+	$scope.restoreseconds = 10000000; //seconds gets stored as a tiny float otherwise it gets huge and breaks js
 
 	$scope.mode = 1; //mode indicates whether we're running in realtime (1) or simulated (0, loading)
 	$scope.timestep = 1; //defaults to 1 second, unless we're loading, in which case we negotiate time in larger chunks
@@ -50,10 +51,10 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'tilevent':0,
 
 		//these are the stored values for resting/sleeping, will be used for resets and can be varied fixme
-		'tilstopstored':$scope.onehour * 3, //how long you can go without a rest
+		'tilstopstored':$scope.onehour * 2, //how long you can go without a rest
 		'tilgostored':$scope.onehour / 3, //how long before you can start going again
-		'tilsleepstored':$scope.onehour * 17, //how long before you have to sleep
-		'tilwakestored':$scope.onehour * 7, //how long before you wake up
+		'tilsleepstored':$scope.onehour * 16, //how long before you have to sleep
+		'tilwakestored':$scope.onehour * 8, //how long before you wake up
 		'tileventstored':$scope.onehour * 100, //how long until the next event, will be randomised, fixme currently set to really high to not conflict
 
 		'onplaneboat':0, //flag to show if we're on a plane or a boat, as opposed to cycling. If not cycling, counts as a rest
@@ -152,9 +153,9 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			rd = new Date();
 		}
 		else {
-			rd = $scope.obj.starttime + ($scope.obj.seconds * 1000); //convert obj.seconds to milliseconds
+			rd = $scope.obj.starttime + (($scope.obj.seconds * $scope.restoreseconds) * 1000); //convert obj.seconds to milliseconds
 			rd = new Date(rd);
-			console.log($scope.obj.starttime,$scope.obj.seconds * 1000,rd);
+			console.log('Started:',$scope.obj.starttime,'seconds:',($scope.obj.seconds * $scope.restoreseconds) * 1000,'start date',rd);
 		}
 		return rd.getDate() + '/' + $scope.pad((rd.getMonth()+1),2)  + '/' + rd.getFullYear() + ' @ ' + $scope.pad(rd.getHours(),2) + ':' + $scope.pad(rd.getMinutes(),2) + ':' + $scope.pad(rd.getSeconds(),2);
 	};
@@ -252,7 +253,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	
 	//given an array of numbers, return the index of the smallest
 	$scope.timeComparison = function(compare){
-		console.log('timeComparison',compare);
+		//console.log('timeComparison',compare);
 		var ln = compare.length;
 		var smallest = 10000000000;
 		var smallestindex = 0;
@@ -363,7 +364,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//calculate time so far
 	$scope.calcTime = function(){
-		var totaltime = $scope.obj.seconds;
+		var totaltime = $scope.obj.seconds * $scope.restoreseconds;
 		var days = Math.floor(totaltime / 86400);
 		totaltime -= days * 86400;
 		var hours = Math.floor(totaltime / 3600) % 24;
@@ -378,7 +379,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//generic function to increase the amount of time that has elapsed.
 	//called both by the main loop (per second) and by the load functionality
 	$scope.incrementTime = function(){
-		$scope.obj.seconds += ($scope.timestep * $scope.obj.timespeed);
+		$scope.obj.seconds += ($scope.timestep * $scope.obj.timespeed) / $scope.restoreseconds;
 	};
 	
 	//increment distance, based on speed
@@ -394,7 +395,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//main loop
 	$scope.newLoop = function(){
-		console.log('newLoop, timestep is:',$scope.timestep);
+		//console.log('newLoop, timestep is:',$scope.timestep);
 		$scope.incrementTime();
 		$scope.calcTime();
 		if(!$scope.obj.onplaneboat){
@@ -406,7 +407,9 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			$scope.incrementDistance($scope.timestep);
 			if($scope.obj.currdestdist === 0){
 	            $scope.checkDests(1);
-	            $scope.doMap();
+	            if($scope.mode){ //only draw the map once the loading has finished
+		            $scope.doMap();
+				}
 	        }
 		}
 
@@ -414,7 +417,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//otherwise newLoop is called by an interval
 		$scope.getCurrDestTime();
 		if(!$scope.mode){
-			console.log('mode = loading, continuing');
+			//console.log('mode = loading, continuing');
 			if($scope.loaddiff){
 				$scope.loadLoop();
 			}
