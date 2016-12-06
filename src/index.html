@@ -55,7 +55,7 @@
 			<p>Previous destination: {{ prevdest }}</p>
 			<p>Current destination: {{ currdest }}, {{ currcountry }}</p>
 			<p>Distance to current destination: {{ obj.currdestdist|number:2 }}km</p>
-			<p>Time to current destination: {{ obj.currdesttime / onehour | number:2 }} hours</p>
+			<p data-ng-if="obj.awake">Time to current destination: {{ obj.currdesttime / onehour | number:2 }} hours</p>
 			<p>Time: {{ obj.totaltime }}</p>
 			<p>Total seconds: {{ obj.seconds * 10000000 | number:0 }} ({{ obj.seconds |number:7 }})</p>
 			<hr/>
@@ -63,7 +63,7 @@
 			<p data-ng-if="obj.moving">Time til rest: {{ obj.tilstop / onehour | number:2 }} hours</p>
 			<p data-ng-if="obj.awake">Time til sleep: {{ obj.tilsleep / onehour | number:2 }} hours</p>
 			<p data-ng-if="!obj.awake">Time til end of sleep: {{ obj.tilwake / onehour | number:2 }} hours</p>
-			<p data-ng-if="!obj.moving">Time til end of rest: {{ obj.tilgo / onehour | number:2 }} hours</p>
+			<p data-ng-if="!obj.moving && obj.awake">Time til end of rest: {{ obj.tilgo / onehour | number:2 }} hours</p>
 
 		</div>
 

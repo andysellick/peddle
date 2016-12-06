@@ -181,8 +181,10 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				$scope.obj.speedkmph = $scope.boatplanespeeds[$scope.dests[$scope.obj.currdest].type];
 			}
 			else {
-				$scope.obj.onplaneboat = 0;
-				$scope.obj.speedkmph = $scope.obj.speedkmphstored;
+				if($scope.obj.onplaneboat){
+					$scope.obj.onplaneboat = 0;
+					$scope.obj.speedkmph = $scope.obj.speedkmphstored;
+				}
 			}
 		}
   		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
@@ -497,7 +499,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			should be able to come up with a distance per second amount, weighted by these factors, that we then add to total distance
 		*/
 		//$scope.obj.speedkmph = Math.round(($scope.obj.speedm / 1000) * 3600);
-		$scope.obj.speedkmph = $scope.obj.speedkmph; //fixme this used to be rounded to display a sensible number in the FE but now it's redundant
+		//$scope.obj.speedkmph = $scope.obj.speedkmph; //fixme this used to be rounded to display a sensible number in the FE but now it's redundant
 	};
 
 	//fixme this is just for testing and breaks some of the functionality
