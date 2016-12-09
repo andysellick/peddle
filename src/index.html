@@ -84,15 +84,23 @@
 
 		<div class="box messages">
 			<ul class="messagecontrols">
+				<li data-ng-repeat="m in messagetypes">
+					<label>
+						<input type="checkbox" data-ng-model="m.show"/>
+						{{ m.name }}
+					</label>
+				</li>
+<!--
 				<li data-ng-click="messages.showOfType(0)">All</li>
 				<li data-ng-click="messages.showOfType(1)">Dests</li>
 				<li data-ng-click="messages.showOfType(2)">Stops</li>
 				<li data-ng-click="messages.showOfType(3)">Events</li>
+-->
 			</ul>
 			<div class="messagewrap">
-	        	<div data-ng-repeat="message in obj.messages | orderBy:'-'" data-ng-if="message.show" class="message">
+	        	<div data-ng-repeat="message in obj.messages | orderBy:'-'" data-ng-if="messagetypes[message.type].show" class="message">
 	        		{{ message.text }}
-	        		<span class="btn" data-ng-click="messages.hide(obj.messages.length - $index - 1)">Remove</span>
+	        		<!-- <span class="btn" data-ng-click="messages.hide(obj.messages.length - $index - 1)">Remove</span> -->
 	        		<span class="datetime">{{ message.datetime }}</span>
 	        	</div>
 	        </div>

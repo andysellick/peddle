@@ -15,6 +15,18 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.timestep = 1; //defaults to 1 second, unless we're loading, in which case we negotiate time in larger chunks
 
 	$scope.boatplanespeeds = [0,40,900];
+	
+	$scope.messagetypes = [
+		{	'name':'Destinations',
+			'show':true
+		},
+		{	'name':'Stops',
+			'show':true
+		},
+		{	'name':'Events',
+			'show':true
+		},
+	];
 
     //map variables
     $scope.map = 0;
@@ -119,7 +131,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			$scope.obj.tilsleep = $scope.obj.tilsleepstored;
 			$scope.obj.tilwake = $scope.obj.tilwakestored;
 			$scope.obj.tilevent = $scope.obj.tileventstored;
-			$scope.messages.create('You have begun your journey',$scope.getTimeNow(),1);
+			$scope.messages.create('You have begun your journey',$scope.getTimeNow(),0);
 			$scope.obj.starttime = Date.now(); //stores the start time in timestamp milliseconds, will need later for loading calculations
 		}
 		if(!$scope.obj.pause){
@@ -169,7 +181,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
             $scope.obj.currdest++;
             $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
             //console.log($scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
-            $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),1);
+            $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),0);
 			if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane
 				console.log('currently on a boat/plane');
 				$scope.obj.onplaneboat = $scope.dests[$scope.obj.currdest].type;
@@ -508,16 +520,18 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.obj.speedkmph += changeby;
 		//$scope.calcSpeed();
 	};
-	
+
 	$scope.messages = {
 		//message types: 1 destinations, 2 rest/sleep, 3 events
 		create: function(m,datetime,mtype){
 			$scope.obj.messages.push({'text':m,'show':1,'datetime':datetime,'type':mtype});
 		},
+		/* not in use anymore
 		hide: function(i){
 			console.log(i);
 			$scope.obj.messages[i].show = 0;
 		},
+		*/
 		showOfType: function(show){
 			var len = $scope.obj.messages.length;
 			for(var m = 0; m < len; m++){
@@ -528,6 +542,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				else {
 					$scope.obj.messages[m].show = 0;
 				}
+			}
+		},
+		filterMessages: function(){
+			var len = $scope.obj.messages.length;
+			for(var m = 0; m < len; m++){
+
 			}
 		}
 	};
@@ -540,7 +560,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			if($scope.obj.awake){
 				$scope.obj.tilsleep = Math.max(0,$scope.obj.tilsleep - ($scope.timestep * $scope.obj.timespeed));
 				if($scope.obj.tilsleep === 0){
-					$scope.messages.create('You stopped to sleep',$scope.getTimeNow(),2);
+					$scope.messages.create('You stopped to sleep',$scope.getTimeNow(),1);
 					$scope.obj.awake = 0;
 					$scope.obj.moving = 0;
 				}
@@ -549,7 +569,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				$scope.obj.tilwake = Math.max(0,$scope.obj.tilwake - ($scope.timestep * $scope.obj.timespeed));
 				if($scope.obj.tilwake === 0){
 					//fixme add time here
-					$scope.messages.create('You woke up',$scope.getTimeNow(),2);
+					$scope.messages.create('You woke up',$scope.getTimeNow(),1);
 					$scope.obj.awake = 1;
 					$scope.obj.moving = 1;
 					$scope.timings.resets.resetTilsleep();
@@ -566,14 +586,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					$scope.obj.tilstop = Math.max(0,$scope.obj.tilstop - ($scope.timestep * $scope.obj.timespeed));
 					//console.log($scope.obj.tilstop);
 					if($scope.obj.tilstop === 0){
-						$scope.messages.create('You stopped for a rest',$scope.getTimeNow(),2);
+						$scope.messages.create('You stopped for a rest',$scope.getTimeNow(),1);
 						$scope.obj.moving = 0;
 					}
 				}
 				else {
 					$scope.obj.tilgo = Math.max(0,$scope.obj.tilgo - ($scope.timestep * $scope.obj.timespeed));
 					if($scope.obj.tilgo === 0){
-						$scope.messages.create('You set off again',$scope.getTimeNow(),2);
+						$scope.messages.create('You set off again',$scope.getTimeNow(),1);
 						$scope.obj.moving = 1;
 						$scope.timings.resets.resetTilstop();
 						$scope.timings.resets.resetTilgo();
