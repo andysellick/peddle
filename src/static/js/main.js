@@ -203,6 +203,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
   		$scope.prevdest = Math.max(0,$scope.obj.currdest - 1);
 	    $scope.prevdest = $scope.dests[$scope.prevdest].name;
   		$scope.currcountry = $scope.dests[$scope.obj.currdest].loc;
+  		var tmp = Math.max(0,$scope.obj.currdest - 1);
+  		$scope.prevcountry = $scope.dests[tmp].loc;
   		if($scope.obj.currdestdist === -1){
             $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
         }

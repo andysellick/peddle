@@ -51,9 +51,9 @@
 		
 		<div class="box journey">
 			<div class="progresswrapper">
-				<div class="progress" style="width: {{ (100 / dests[obj.currdest].dist) * obj.currdestdist|number:0 }}%;"></div>
+				<div class="progress" style="width: {{ (100 - (100 / dests[obj.currdest].dist) * obj.currdestdist)|number:0 }}%;"></div>
 				<div class="marker start">
-					{{ prevdest }}
+					{{ prevdest }}, {{ prevcountry }}
 				</div>
 				<div class="marker end">
 					{{ currdest }}, {{ currcountry }} ({{ obj.currdestdist|number:2 }}km)
