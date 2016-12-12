@@ -4,7 +4,12 @@ if(!Date.now){
 	Date.now = function(){ return new Date().getTime(); };
 }
 
-//angular.module('peddler', []).controller('peddlerController',function($scope,$http,$window,$timeout,$compile){
+/*
+	useful
+	https://en.wikipedia.org/wiki/Mark_Beaumont
+	https://en.wikipedia.org/wiki/Around_the_world_cycling_record
+*/
+
 angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
 	$scope.weight = 0;
 	$scope.oneday = 86400; //number of seconds in one day
@@ -65,20 +70,48 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//these are the stored values for resting/sleeping, will be used for resets and can be varied fixme
 		'tilstopstored':$scope.onehour * 2, //how long you can go without a rest
 		'tilgostored':$scope.onehour / 3, //how long before you can start going again
-		'tilsleepstored':$scope.onehour * 16, //how long before you have to sleep
-		'tilwakestored':$scope.onehour * 8, //how long before you wake up
+		'tilsleepstored':$scope.onehour * 15, //how long before you have to sleep
+		'tilwakestored':$scope.onehour * 9, //how long before you wake up
 		'tileventstored':$scope.onehour * 100, //how long until the next event, will be randomised, fixme currently set to really high to not conflict
 
 		'onplaneboat':0, //flag to show if we're on a plane or a boat, as opposed to cycling. If not cycling, counts as a rest
 
+		'health':1,
 		'bike': {
 			'weight':1,
+			//rate of deterioration is amount to decrease condition by per km
 			'parts':[
 				{	'name':'Front tyre',
 					'cond':1,
+					'decay':1 / 3000,
 				},
 				{	'name':'Rear tyre',
 					'cond':1,
+					'decay':1 / 3000,
+				},
+				{	'name':'Front wheel',
+					'cond':1,
+					'decay':0,
+				},
+				{	'name':'Rear wheel',
+					'cond':1,
+					'decay':0,
+				},
+				{	'name':'Frame',
+					'cond':1,
+					'decay':0,
+				},
+				{	'name':'Brakepads',
+					'cond':1,
+					'decay':0,
+				},
+				{	'name':'Seat',
+					'cond':1,
+					'decay':0,
+				},
+				{	'name':'Chain',
+					'cond':1,
+					'decay':0,
 				}
 			]
 		},
@@ -106,10 +139,19 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			'weight':3,
 		},
 		{	'id':3,
-			'name':'Regular tyres',
+			'name':'Tent',
 			'weight':2,
-		}
+		},
 	];
+	/*
+		mattress
+		sunglasses
+		puncture kit? tools
+		insect repellent
+		suncream
+		lights
+		water bottles
+	*/
 
 	//on load, check localstorage for previous save
 	$scope.init = function(){
@@ -128,11 +170,20 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		else {
 			$scope.obj.tilstop = $scope.obj.tilstopstored;
 			$scope.obj.tilgo = $scope.obj.tilgostored;
-			$scope.obj.tilsleep = $scope.obj.tilsleepstored;
 			$scope.obj.tilwake = $scope.obj.tilwakestored;
 			$scope.obj.tilevent = $scope.obj.tileventstored;
 			$scope.messages.create('You have begun your journey',$scope.getTimeNow(),0);
 			$scope.obj.starttime = Date.now(); //stores the start time in timestamp milliseconds, will need later for loading calculations
+			//work out what time is now, adjust sleep pattern accordingly
+			var currhour = new Date();
+			currhour = currhour.getHours();
+			//assuming an 8 hour sleep, beginning at 11pm fixme maybe need to increase sleep to include time for eating, shopping
+			if(currhour < 22 && currhour > 6){
+				$scope.obj.tilsleep = (22 - currhour) * $scope.onehour;
+			}
+			else {
+				$scope.obj.tilsleep = $scope.obj.tilsleepstored;
+			}
 		}
 		if(!$scope.obj.pause){
 			$scope.start();
@@ -149,6 +200,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//reset for realtime operation
 		$scope.timestep = 1;
 		$scope.mode = 1;
+
 	};
 	
 	//pad a digit with a given number of leading zeroes
@@ -401,12 +453,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//increment distance, based on speed
 	$scope.incrementDistance = function(incrementby){
 		var newdist = (($scope.obj.speedkmph / 3600) * $scope.obj.timespeed) * incrementby; //distance in km we've travelled since last
-		//console.log('newdist',newdist);
-		$scope.obj.distkm = $scope.obj.distkm + newdist; //add to total travelled
-
-		//$scope.obj.distancekm = $scope.oneDecimal($scope.obj.distkm);
+		if(!$scope.obj.onplaneboat){
+			$scope.obj.distkm = $scope.obj.distkm + newdist; //total peddalled
+		}
+		$scope.obj.totaldistkm = $scope.obj.totaldistkm + newdist; //total travelled
 		$scope.obj.currdestdist = Math.max(0,$scope.obj.currdestdist - newdist);
-		//$scope.obj.currdestdist = $scope.oneDecimal($scope.obj.currdestdist);
+
 	};
 
 	//main loop
@@ -421,6 +473,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 		if($scope.obj.awake && $scope.obj.moving){
 			$scope.incrementDistance($scope.timestep);
+			$scope.health.updatePartStatus();
 			if($scope.obj.currdestdist === 0){
 	            $scope.checkDests(1);
 	            if($scope.mode){ //only draw the map once the loading has finished, otherwise geocoder gets really confused
@@ -550,6 +603,17 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			var len = $scope.obj.messages.length;
 			for(var m = 0; m < len; m++){
 
+			}
+		}
+	};
+	
+	$scope.health = {
+		updatePartStatus: function(){
+			var ln = $scope.obj.bike.parts.length;
+			//$scope.timestep
+			for(var x = 0; x < ln; x++){
+				$scope.obj.bike.parts[x].cond = 1 - ($scope.obj.bike.parts[x].decay * $scope.obj.distkm);
+				console.log($scope.obj.bike.parts[x].cond);
 			}
 		}
 	};

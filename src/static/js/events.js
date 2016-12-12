@@ -2,8 +2,9 @@
 var events = [
 {	'name':'Flat tyre',
 	'message':'You got a puncture.',
-	'speedpenalty':-20,
-
+	'timepenalty':0,
+	'bikedamage':1,
+	'healthdamage':0,
 },
 ];
 
