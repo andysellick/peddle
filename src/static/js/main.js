@@ -141,11 +141,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.checkDests();
 		$scope.recalcStuff();
         $scope.doMap();
-
+/*
         for(var m = 0; m < $scope.obj.messages.length; m++){
 	        console.log($scope.obj.messages[m]);
 		}
-
+*/
 		//reset for realtime operation
 		$scope.timestep = 1;
 		$scope.mode = 1;
@@ -167,7 +167,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		else {
 			rd = $scope.obj.starttime + (($scope.obj.seconds * $scope.restoreseconds) * 1000); //convert obj.seconds to milliseconds
 			rd = new Date(rd);
-			console.log('Started:',$scope.obj.starttime,'seconds:',($scope.obj.seconds * $scope.restoreseconds) * 1000,'start date',rd);
+			//console.log('Started:',$scope.obj.starttime,'seconds:',($scope.obj.seconds * $scope.restoreseconds) * 1000,'start date',rd);
 		}
 		return rd.getDate() + '/' + $scope.pad((rd.getMonth()+1),2)  + '/' + rd.getFullYear() + ' @ ' + $scope.pad(rd.getHours(),2) + ':' + $scope.pad(rd.getMinutes(),2) + ':' + $scope.pad(rd.getSeconds(),2);
 	};
@@ -423,7 +423,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			$scope.incrementDistance($scope.timestep);
 			if($scope.obj.currdestdist === 0){
 	            $scope.checkDests(1);
-	            if($scope.mode){ //only draw the map once the loading has finished
+	            if($scope.mode){ //only draw the map once the loading has finished, otherwise geocoder gets really confused
 		            $scope.doMap();
 				}
 	        }
