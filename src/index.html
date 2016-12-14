@@ -62,7 +62,7 @@
 		</div>
 
 		<div class="box stats">
-	    	<p>Speed: {{ obj.speedkmph | number:0 }}kph {{ obj.speedkmph / 1.60934 | number:0 }}mph</p>
+	    	<p>Speed: {{ obj.speedkmph * speednerf | number:0 }}kph {{ (obj.speedkmph * speednerf) / 1.60934 | number:0 }}mph</p>
 			<p>Distance travelled: {{ obj.totaldistkm|number:2 }}km {{ obj.totaldistkm / 1.6|number:2 }} miles</p>
 			<p>Distance ridden: {{ obj.distkm|number:2 }}km {{ obj.distkm / 1.6|number:2 }} miles</p>
 			<p>Time: {{ obj.totaltime }}</p>

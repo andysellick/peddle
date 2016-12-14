@@ -6,8 +6,23 @@ if(!Date.now){
 
 /*
 	useful
+	http://cyclehacker.com/route-to-cycle-around-the-world/
+	https://www.google.com/maps/d/viewer?mid=1j8elWnGTrl4uC4zwmNI9Hspbr7s&ll=-1.867345112922028%2C0&z=2
 	https://en.wikipedia.org/wiki/Mark_Beaumont
 	https://en.wikipedia.org/wiki/Around_the_world_cycling_record
+
+	http://www.dailyrecord.co.uk/news/scottish-news/scots-cyclist-mark-beaumont-tells-969029
+	18,300 - The number of miles Mark cycled.
+	13 - His average speed in mph.
+	20 - The number of countries cycled through on the epic trip.
+	3 - The number of crashes he had.
+	12 - The number of tyres used.
+	7 - The number of punctures.
+	6 - The number of pairs of shorts worn out.
+	115-120 - Mark's average heart rate measured in beats per minute.
+	2000-6000 - How many calories he burned off every day.
+	10-20 - The number of pints of liquid he drank every day.
+	8 - The number of police cells Mark slept in.
 */
 
 angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
@@ -18,6 +33,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	$scope.mode = 1; //mode indicates whether we're running in realtime (1) or simulated (0, loading)
 	$scope.timestep = 1; //defaults to 1 second, unless we're loading, in which case we negotiate time in larger chunks
+	$scope.speednerf = 1;
 
 	$scope.boatplanespeeds = [0,40,900];
 	
@@ -99,7 +115,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				},
 				{	'name':'Brakepads',
 					'cond':1,
-					'decay':1 / 200,
+					'decay':1 / 400,
 				},
 				{	'name':'Chain',
 					'cond':1,
@@ -426,7 +442,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
     //calculate how long to current destination at current speed
     $scope.getCurrDestTime = function(){
 		if($scope.obj.moving){
-			$scope.obj.currdesttime = ($scope.obj.currdestdist / $scope.obj.speedkmph) * $scope.onehour;
+			if(!$scope.obj.onplaneboat){
+				$scope.obj.currdesttime = ($scope.obj.currdestdist / ($scope.obj.speedkmph * $scope.speednerf)) * $scope.onehour;
+			}
+			else {
+				$scope.obj.currdesttime = ($scope.obj.currdestdist / $scope.obj.speedkmph) * $scope.onehour;
+			}
 		}
 	};
 
@@ -452,9 +473,13 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	
 	//increment distance, based on speed
 	$scope.incrementDistance = function(incrementby){
-		var newdist = (($scope.obj.speedkmph / 3600) * $scope.obj.timespeed) * incrementby; //distance in km we've travelled since last
+		var newdist = 0;
 		if(!$scope.obj.onplaneboat){
+			newdist = ((($scope.obj.speedkmph * $scope.speednerf) / 3600) * $scope.obj.timespeed) * incrementby; //distance in km we've travelled since last
 			$scope.obj.distkm = $scope.obj.distkm + newdist; //total peddalled
+		}
+		else {
+			newdist = (($scope.obj.speedkmph / 3600) * $scope.obj.timespeed) * incrementby;
 		}
 		$scope.obj.totaldistkm = $scope.obj.totaldistkm + newdist; //total travelled
 		$scope.obj.currdestdist = Math.max(0,$scope.obj.currdestdist - newdist);
@@ -606,18 +631,26 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			}
 		}
 	};
-	
+
 	$scope.health = {
+		//calculate wear on parts based on rate of wear and distance travelled
 		updatePartStatus: function(){
+			var h = 1;
+			var havg = 0;
 			var ln = $scope.obj.bike.parts.length;
 			//$scope.timestep
 			for(var x = 0; x < ln; x++){
 				$scope.obj.bike.parts[x].cond = Math.max(0,1 - ($scope.obj.bike.parts[x].decay * $scope.obj.distkm));
 				//console.log($scope.obj.bike.parts[x].name,$scope.obj.bike.parts[x].cond);
+				havg += 1 - $scope.obj.bike.parts[x].cond;
 			}
+			//work out average wear on parts, will be used as negative multiplier on overall speed
+			havg = havg / ln;
+			$scope.speednerf = 1 - havg;
+			console.log($scope.speednerf);
 		}
 	};
-	
+
 	//functions relating to countdowns for sleep, event occurrence, etc.
 	$scope.timings = {
 		//check to see if we need to sleep or wake
