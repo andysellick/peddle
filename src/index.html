@@ -56,35 +56,36 @@
 					{{ prevdest }}, {{ prevcountry }}
 				</div>
 				<div class="marker end">
-					{{ currdest }}, {{ currcountry }} ({{ obj.currdestdist|number:2 }}km)
+					{{ currdest }}, {{ currcountry }} ({{ obj.currdestdist|number:2 }}km, {{ obj.currdesttime / onehour | number:2 }} hr)
 				</div>
 			</div>
 		</div>
 
 		<div class="box stats">
 	    	<p>Speed: {{ obj.speedkmph | number:0 }}kph {{ obj.speedkmph / 1.60934 | number:0 }}mph</p>
-			<p>Total distance: {{ obj.totaldistkm|number:2 }}km {{ obj.totaldistkm / 1.6|number:2 }} miles</p>
+			<p>Distance travelled: {{ obj.totaldistkm|number:2 }}km {{ obj.totaldistkm / 1.6|number:2 }} miles</p>
 			<p>Distance ridden: {{ obj.distkm|number:2 }}km {{ obj.distkm / 1.6|number:2 }} miles</p>
-			<p data-ng-if="obj.awake">Time to current destination: {{ obj.currdesttime / onehour | number:2 }} hours</p>
 			<p>Time: {{ obj.totaltime }}</p>
 			<p>Total seconds: {{ obj.seconds * 10000000 | number:0 }} ({{ obj.seconds |number:7 }})</p>
 			<hr/>
 			<p>Awake: {{ obj.awake }}, Moving: {{ obj.moving }}</p>
-			<p data-ng-if="obj.moving">Time til rest: {{ obj.tilstop / onehour | number:2 }} hours</p>
-			<div data-ng-if="obj.moving" class="progresswrapper clean">
-				<div class="progress" style="width: {{ (100 - (100 / obj.tilstopstored) * obj.tilstop)|number:0 }}%;"></div>
-			</div>
-			<p data-ng-if="obj.awake">Time til sleep: {{ obj.tilsleep / onehour | number:2 }} hours</p>
-			<div data-ng-if="obj.awake" class="progresswrapper clean">
-				<div class="progress" style="width: {{ (100 - (100 / obj.tilsleepstored) * obj.tilsleep)|number:0 }}%;"></div>
-			</div>
-			<p data-ng-if="!obj.awake">Time til end of sleep: {{ obj.tilwake / onehour | number:2 }} hours</p>
-			<div data-ng-if="!obj.awake" class="progresswrapper clean">
-				<div class="progress" style="width: {{ (100 - (100 / obj.tilwakestored) * obj.tilwake)|number:0 }}%;"></div>
-			</div>
-			<p data-ng-if="!obj.moving && obj.awake">Time til end of rest: {{ obj.tilgo / onehour | number:2 }} hours</p>
-			<div data-ng-if="!obj.awake && obj.awake" class="progresswrapper clean">
-				<div class="progress" style="width: {{ (100 - (100 / obj.tilgostored) * obj.tilgo)|number:0 }}%;"></div>
+			<div data-ng-if="!obj.onplaneboat">
+				<p data-ng-if="obj.moving">Time til rest: {{ obj.tilstop / onehour | number:2 }} hours</p>
+				<div data-ng-if="obj.moving" class="progresswrapper clean">
+					<div class="progress" style="width: {{ (100 - (100 / obj.tilstopstored) * obj.tilstop)|number:0 }}%;"></div>
+				</div>
+				<p data-ng-if="obj.awake">Time til sleep: {{ obj.tilsleep / onehour | number:2 }} hours</p>
+				<div data-ng-if="obj.awake" class="progresswrapper clean">
+					<div class="progress" style="width: {{ (100 - (100 / obj.tilsleepstored) * obj.tilsleep)|number:0 }}%;"></div>
+				</div>
+				<p data-ng-if="!obj.awake">Time til end of sleep: {{ obj.tilwake / onehour | number:2 }} hours</p>
+				<div data-ng-if="!obj.awake" class="progresswrapper clean">
+					<div class="progress" style="width: {{ (100 - (100 / obj.tilwakestored) * obj.tilwake)|number:0 }}%;"></div>
+				</div>
+				<p data-ng-if="!obj.moving && obj.awake">Time til end of rest: {{ obj.tilgo / onehour | number:2 }} hours</p>
+				<div data-ng-if="!obj.awake && obj.awake" class="progresswrapper clean">
+					<div class="progress" style="width: {{ (100 - (100 / obj.tilgostored) * obj.tilgo)|number:0 }}%;"></div>
+				</div>
 			</div>
 		</div>
 

@@ -91,17 +91,21 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				},
 				{	'name':'Front wheel',
 					'cond':1,
-					'decay':0,
+					'decay':1 / 8000,
 				},
 				{	'name':'Rear wheel',
 					'cond':1,
-					'decay':0,
-				},
-				{	'name':'Frame',
-					'cond':1,
-					'decay':0,
+					'decay':1 / 8000,
 				},
 				{	'name':'Brakepads',
+					'cond':1,
+					'decay':1 / 200,
+				},
+				{	'name':'Chain',
+					'cond':1,
+					'decay':1 / 3000,
+				},
+				{	'name':'Frame',
 					'cond':1,
 					'decay':0,
 				},
@@ -109,10 +113,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					'cond':1,
 					'decay':0,
 				},
-				{	'name':'Chain',
-					'cond':1,
-					'decay':0,
-				}
 			]
 		},
 		'gear': [
@@ -612,8 +612,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			var ln = $scope.obj.bike.parts.length;
 			//$scope.timestep
 			for(var x = 0; x < ln; x++){
-				$scope.obj.bike.parts[x].cond = 1 - ($scope.obj.bike.parts[x].decay * $scope.obj.distkm);
-				console.log($scope.obj.bike.parts[x].cond);
+				$scope.obj.bike.parts[x].cond = Math.max(0,1 - ($scope.obj.bike.parts[x].decay * $scope.obj.distkm));
+				//console.log($scope.obj.bike.parts[x].name,$scope.obj.bike.parts[x].cond);
 			}
 		}
 	};
