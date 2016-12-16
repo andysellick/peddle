@@ -647,7 +647,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			//work out average wear on parts, will be used as negative multiplier on overall speed
 			havg = havg / ln;
 			$scope.speednerf = 1 - havg;
-			console.log($scope.speednerf);
 		}
 	};
 
