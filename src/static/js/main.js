@@ -48,6 +48,9 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		{	'name':'Events',
 			'show':true
 		},
+		{	'name':'Achievements',
+			'show':true
+		},
 	];
 
     //map variables
@@ -96,7 +99,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'health':1,
 		'bike': {
 			'weight':1,
-			//rate of deterioration is amount to decrease condition by per km
+			//rate of deterioration is amount to decrease condition by per km fixme probably need to assume better numbers, high qual kit
 			'parts':[
 				{	'name':'Front tyre',
 					'cond':1,
@@ -633,6 +636,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				}
 			}
 		},
+		//fixme not sure this is used
 		filterMessages: function(){
 			var len = $scope.obj.messages.length;
 			for(var m = 0; m < len; m++){
@@ -663,8 +667,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		},
 		//fix part of the bike
 		fixPart: function(which){
-			console.log($scope.obj.bike.parts[which]);
 			$scope.obj.bike.parts[which].fixedat = $scope.obj.distkm;
+			$scope.messages.create('You fixed your ' + $scope.obj.bike.parts[which].name,$scope.getTimeNow(),0);
 		}
 	};
 
