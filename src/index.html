@@ -123,9 +123,11 @@
 	    </div>
 	    
 	    <div class="box health">
-			<div data-ng-repeat="gear in obj.bike.parts">
+			<p data-ng-repeat="gear in obj.bike.parts">
 				{{ gear.name }} {{ gear.cond * 100|number:0 }}%
-			</div>
+				
+				<span data-ng-if="gear.cond < 1" data-ng-click="health.fixPart($index)">Fix</span>
+			</p>
 	    </div>
     </div>
 

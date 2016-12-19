@@ -250,13 +250,18 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
             $scope.obj.currdest++;
             $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
             //console.log($scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
-			console.log('switching to new destination,',$scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
+			//console.log('new destination,',$scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc,$scope.obj.currdesttime);
             $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),0);
 			if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane
-				console.log('currently on a boat/plane');
+				$scope.getCurrDestTime();
+				//console.log('currently on a boat/plane',$scope.obj.currdesttime);
 				$scope.obj.onplaneboat = $scope.dests[$scope.obj.currdest].type;
-				$scope.timings.resets.resetTilsleep();
-				$scope.timings.resets.resetTilwake();
+				//fixme experimental - only reset sleep if the plane/boat journey time is longer than the time between now and sleep plus the length of sleep
+				//would be good to do something a bit cleverer than this, but at least it keeps the sleep time consistent
+				if($scope.obj.currdesttime > $scope.obj.tilsleep + $scope.obj.tilwake){
+					$scope.timings.resets.resetTilsleep();
+					$scope.timings.resets.resetTilwake();
+				}
 				$scope.timings.resets.resetTilstop();
 				//console.log('type:',$scope.dests[$scope.obj.currdest].type);
 				$scope.obj.speedkmphstored = $scope.obj.speedkmph;
@@ -381,19 +386,19 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					switch(smallest){
 						case 0:
 							$scope.timestep = $scope.loaddiff;
-							console.log('loaddiff is next thing to happen',$scope.timestep);
+							//console.log('loaddiff is next thing to happen',$scope.timestep);
 							break;
 						case 1:
 							$scope.timestep = $scope.obj.currdesttime;
-							console.log('currdesttime is next thing to happen',$scope.timestep);
+							//console.log('currdesttime is next thing to happen',$scope.timestep);
 							break;
 						case 2:
 							$scope.timestep = $scope.obj.tilstop;
-							console.log('tilstop is next thing to happen',$scope.obj.tilstop);
+							//console.log('tilstop is next thing to happen',$scope.obj.tilstop);
 							break;
 						case 3:
 							$scope.timestep = $scope.obj.tilsleep;
-							console.log('tilsleep is next thing to happen',$scope.timestep);
+							//console.log('tilsleep is next thing to happen',$scope.timestep);
 							break;
 					}
 				}
@@ -406,11 +411,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					switch(smallest){
 						case 0:
 							$scope.timestep = $scope.loaddiff;
-							console.log('loaddiff is next thing to happen',$scope.timestep);
+							//console.log('loaddiff is next thing to happen',$scope.timestep);
 							break;
 						case 1:
 							$scope.timestep = $scope.obj.tilgo;
-							console.log('tilgo is next thing to happen',$scope.timestep);
+							//console.log('tilgo is next thing to happen',$scope.timestep);
 							break;
 					}
 				}
@@ -424,11 +429,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				switch(smallest){
 					case 0:
 						$scope.timestep = $scope.loaddiff;
-						console.log('loaddiff is next thing to happen',$scope.timestep);
+						//console.log('loaddiff is next thing to happen',$scope.timestep);
 						break;
 					case 1:
 						$scope.timestep = $scope.obj.tilwake;
-						console.log('tilwake is next thing to happen',$scope.timestep);
+						//console.log('tilwake is next thing to happen',$scope.timestep);
 						break;
 				}
 			}
@@ -443,6 +448,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
     
     //calculate how long to current destination at current speed
     $scope.getCurrDestTime = function(){
+		//console.log($scope.currdest);
 		if($scope.obj.moving && $scope.currdest){ //sometimes there isn't a currdest, so large loading calculations can break horribly, hence this check
 			if(!$scope.obj.onplaneboat){
 				$scope.obj.currdesttime = ($scope.obj.currdestdist / ($scope.obj.speedkmph * $scope.speednerf)) * $scope.onehour;
@@ -643,13 +649,22 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			var ln = $scope.obj.bike.parts.length;
 			//$scope.timestep
 			for(var x = 0; x < ln; x++){
-				$scope.obj.bike.parts[x].cond = Math.max(0,1 - ($scope.obj.bike.parts[x].decay * $scope.obj.distkm));
+				var fixedat = 0;
+				if($scope.obj.bike.parts[x].hasOwnProperty('fixedat')){
+					fixedat = $scope.obj.bike.parts[x].fixedat;
+				}
+				$scope.obj.bike.parts[x].cond = Math.max(0,1 - ($scope.obj.bike.parts[x].decay * ($scope.obj.distkm - fixedat)));
 				//console.log($scope.obj.bike.parts[x].name,$scope.obj.bike.parts[x].cond);
 				havg += 1 - $scope.obj.bike.parts[x].cond;
 			}
 			//work out average wear on parts, will be used as negative multiplier on overall speed
 			havg = havg / ln;
 			$scope.speednerf = 1 - havg;
+		},
+		//fix part of the bike
+		fixPart: function(which){
+			console.log($scope.obj.bike.parts[which]);
+			$scope.obj.bike.parts[which].fixedat = $scope.obj.distkm;
 		}
 	};
 
