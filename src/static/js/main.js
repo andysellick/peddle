@@ -29,7 +29,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.weight = 0;
 	$scope.oneday = 86400; //number of seconds in one day
 	$scope.onehour = 3600; //number of seconds in an hour
-	$scope.restoreseconds = 10000000; //seconds gets stored as a tiny float otherwise it gets huge and breaks js
+
+	$scope.numbermultiplier = 10000000; //some numbers e.g. seconds get stored as a tiny float otherwise it gets huge and breaks js
 
 	$scope.mode = 1; //mode indicates whether we're running in realtime (1) or simulated (0, loading)
 	$scope.timestep = 1; //defaults to 1 second, unless we're loading, in which case we negotiate time in larger chunks
@@ -233,9 +234,9 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			rd = new Date();
 		}
 		else {
-			rd = $scope.obj.starttime + (($scope.obj.seconds * $scope.restoreseconds) * 1000); //convert obj.seconds to milliseconds
+			rd = $scope.obj.starttime + (($scope.obj.seconds * $scope.numbermultiplier) * 1000); //convert obj.seconds to milliseconds
 			rd = new Date(rd);
-			//console.log('Started:',$scope.obj.starttime,'seconds:',($scope.obj.seconds * $scope.restoreseconds) * 1000,'start date',rd);
+			//console.log('Started:',$scope.obj.starttime,'seconds:',($scope.obj.seconds * $scope.numbermultiplier) * 1000,'start date',rd);
 		}
 		return rd.getDate() + '/' + $scope.pad((rd.getMonth()+1),2)  + '/' + rd.getFullYear() + ' @ ' + $scope.pad(rd.getHours(),2) + ':' + $scope.pad(rd.getMinutes(),2) + ':' + $scope.pad(rd.getSeconds(),2);
 	};
@@ -249,6 +250,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
             $scope.obj.currdest++;
             $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
             //console.log($scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
+			console.log('switching to new destination,',$scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
             $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),0);
 			if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane
 				console.log('currently on a boat/plane');
@@ -379,11 +381,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					switch(smallest){
 						case 0:
 							$scope.timestep = $scope.loaddiff;
-							console.log('loaddiff is next thing to happen');
+							console.log('loaddiff is next thing to happen',$scope.timestep);
 							break;
 						case 1:
 							$scope.timestep = $scope.obj.currdesttime;
-							console.log('currdesttime is next thing to happen');
+							console.log('currdesttime is next thing to happen',$scope.timestep);
 							break;
 						case 2:
 							$scope.timestep = $scope.obj.tilstop;
@@ -391,7 +393,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 							break;
 						case 3:
 							$scope.timestep = $scope.obj.tilsleep;
-							console.log('tilsleep is next thing to happen');
+							console.log('tilsleep is next thing to happen',$scope.timestep);
 							break;
 					}
 				}
@@ -404,11 +406,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					switch(smallest){
 						case 0:
 							$scope.timestep = $scope.loaddiff;
-							console.log('loaddiff is next thing to happen');
+							console.log('loaddiff is next thing to happen',$scope.timestep);
 							break;
 						case 1:
 							$scope.timestep = $scope.obj.tilgo;
-							console.log('tilgo is next thing to happen');
+							console.log('tilgo is next thing to happen',$scope.timestep);
 							break;
 					}
 				}
@@ -422,11 +424,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				switch(smallest){
 					case 0:
 						$scope.timestep = $scope.loaddiff;
-						console.log('loaddiff is next thing to happen');
+						console.log('loaddiff is next thing to happen',$scope.timestep);
 						break;
 					case 1:
 						$scope.timestep = $scope.obj.tilwake;
-						console.log('tilwake is next thing to happen');
+						console.log('tilwake is next thing to happen',$scope.timestep);
 						break;
 				}
 			}
@@ -441,19 +443,20 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
     
     //calculate how long to current destination at current speed
     $scope.getCurrDestTime = function(){
-		if($scope.obj.moving){
+		if($scope.obj.moving && $scope.currdest){ //sometimes there isn't a currdest, so large loading calculations can break horribly, hence this check
 			if(!$scope.obj.onplaneboat){
 				$scope.obj.currdesttime = ($scope.obj.currdestdist / ($scope.obj.speedkmph * $scope.speednerf)) * $scope.onehour;
 			}
 			else {
 				$scope.obj.currdesttime = ($scope.obj.currdestdist / $scope.obj.speedkmph) * $scope.onehour;
 			}
+			//console.log('recalculating CurrDestTime',$scope.obj.currdesttime,$scope.obj.currdestdist,$scope.currdest);
 		}
 	};
 
 	//calculate time so far
 	$scope.calcTime = function(){
-		var totaltime = $scope.obj.seconds * $scope.restoreseconds;
+		var totaltime = $scope.obj.seconds * $scope.numbermultiplier;
 		var days = Math.floor(totaltime / 86400);
 		totaltime -= days * 86400;
 		var hours = Math.floor(totaltime / 3600) % 24;
@@ -468,7 +471,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//generic function to increase the amount of time that has elapsed.
 	//called both by the main loop (per second) and by the load functionality
 	$scope.incrementTime = function(){
-		$scope.obj.seconds += ($scope.timestep * $scope.obj.timespeed) / $scope.restoreseconds;
+		$scope.obj.seconds += ($scope.timestep * $scope.obj.timespeed) / $scope.numbermultiplier;
 	};
 	
 	//increment distance, based on speed
