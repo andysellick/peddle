@@ -5,6 +5,16 @@ var events = [
 	'timepenalty':0,
 	'bikedamage':1,
 	'healthdamage':0,
+
+	'result': function(){
+		console.log('puncture');
+	}
+},
+{	'name':'Accident',
+	'message':'You were involved in an accident.',
+	'result': function(){
+		console.log('accident');
+	}
 },
 ];
 

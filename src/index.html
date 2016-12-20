@@ -56,7 +56,7 @@
 					{{ prevdest }}, {{ prevcountry }}
 				</div>
 				<div class="marker end">
-					{{ currdest }}, {{ currcountry }} ({{ obj.currdestdist|number:2 }}km, {{ obj.currdesttime / onehour | number:2 }} hr)
+					{{ currdest }}, {{ currcountry }}<br/>({{ obj.currdestdist|number:2 }}km, {{ obj.currdesttime / onehour | number:2 }}hrs)
 				</div>
 			</div>
 		</div>
@@ -126,7 +126,7 @@
 			<p data-ng-repeat="gear in obj.bike.parts">
 				{{ gear.name }} {{ gear.cond * 100|number:0 }}%
 				
-				<span data-ng-if="gear.cond < 1" data-ng-click="health.fixPart($index)">Fix</span>
+				<span class="btn btn-small float-right" data-ng-if="gear.cond < 1" data-ng-click="health.fixPart($index)">Fix</span>
 			</p>
 	    </div>
     </div>

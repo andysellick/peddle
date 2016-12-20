@@ -1,4 +1,4 @@
-/* globals angular, dests, google */
+/* globals angular, dests, events, google */
 
 if(!Date.now){
 	Date.now = function(){ return new Date().getTime(); };
@@ -163,6 +163,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			'weight':2,
 		},
 	];
+	$scope.events = [];
 	/*
 		mattress
 		sunglasses
@@ -179,6 +180,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		var saved = localStorage.getItem('peddler');
 		//if there's a save file, load it
 		$scope.dests = dests; //need to do this prior to loading
+		$scope.events = events;
 		//if there's a saved file, load it
 		if(saved !== null && saved.length > 0){ //firefox and chrome seem to handle this differently
 			console.log('loading');
@@ -510,7 +512,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 		if($scope.obj.awake && $scope.obj.moving){
 			$scope.incrementDistance($scope.timestep);
-			$scope.health.updatePartStatus();
+			$scope.healthHandler.updatePartStatus();
+			$scope.eventHandler.checkForEvent();
 			if($scope.obj.currdestdist === 0){
 	            $scope.checkDests(1);
 	            if($scope.mode){ //only draw the map once the loading has finished, otherwise geocoder gets really confused
@@ -518,9 +521,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				}
 	        }
 		}
-
-		//if we're not running in realtime, call loadloop again
-		//otherwise newLoop is called by an interval
+		//if we're not running in realtime, call loadloop again, otherwise newLoop is called by an interval
 		$scope.getCurrDestTime();
 		if(!$scope.mode){
 			//console.log('mode = loading, continuing');
@@ -535,7 +536,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		/*
 			reduce energy level, altered by medical condition, overall weight
 			reduce food level
-			reduce bike status/health
 			improve some health conditions
 			reduce some health conditions
 			store a day in seconds then use to create countdown variables, when zero do something
@@ -645,7 +645,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 	};
 
-	$scope.health = {
+	$scope.healthHandler = {
 		//calculate wear on parts based on rate of wear and distance travelled
 		updatePartStatus: function(){
 			var h = 1;
@@ -669,6 +669,27 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		fixPart: function(which){
 			$scope.obj.bike.parts[which].fixedat = $scope.obj.distkm;
 			$scope.messages.create('You fixed your ' + $scope.obj.bike.parts[which].name,$scope.getTimeNow(),0);
+		}
+	};
+
+	//functions to handle events
+	$scope.eventHandler = {
+		checkForEvent: function(){
+			console.log($scope.obj.tilevent);
+			$scope.obj.tilevent = Math.floor(Math.max(0,$scope.obj.tilevent - $scope.timestep));
+			//$scope.obj.tilevent = Math.floor(Math.max(0,$scope.obj.tilevent - 4000)); //fixme tmp
+			if($scope.obj.tilevent === 0){
+				$scope.eventHandler.callEvent();
+				var max = $scope.onehour * 3;
+				var min = $scope.onehour;
+				$scope.obj.tilevent = Math.round(Math.random() * (max - min) + min);
+				console.log('tilevent is now',$scope.obj.tilevent);
+			}
+		},
+		callEvent: function(){
+			var chosen = Math.round((Math.random() * ($scope.events.length - 1) + 1) - 1);
+			console.log('chose event',$scope.events[chosen].name,chosen);
+			$scope.events[chosen].result();
 		}
 	};
 
@@ -882,6 +903,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.recalcStuff();
 	};
 
+	//fixme not in use?
 	$scope.oneDecimal = function(num){
         return(Math.round(num * 10) / 10);
     };
