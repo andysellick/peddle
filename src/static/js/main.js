@@ -35,6 +35,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	$scope.mode = 1; //mode indicates whether we're running in realtime (1) or simulated (0, loading)
 	$scope.timestep = 1; //defaults to 1 second, unless we're loading, in which case we negotiate time in larger chunks
 	$scope.speednerf = 1;
+	$scope.healthnerf = 1;
 
 	$scope.boatplanespeeds = [0,40,900];
 	
@@ -92,7 +93,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'tilgostored':$scope.onehour / 3, //how long before you can start going again
 		'tilsleepstored':$scope.onehour * 15, //how long before you have to sleep
 		'tilwakestored':$scope.onehour * 9, //how long before you wake up
-		'tileventstored':$scope.onehour * 100, //how long until the next event, will be randomised, fixme currently set to really high to not conflict
 
 		'onplaneboat':0, //flag to show if we're on a plane or a boat, as opposed to cycling. If not cycling, counts as a rest
 
@@ -103,27 +103,27 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			'parts':[
 				{	'name':'Front tyre',
 					'cond':1,
-					'decay':1 / 3000,
+					'decay':1 / 4000,
 				},
 				{	'name':'Rear tyre',
 					'cond':1,
-					'decay':1 / 3000,
+					'decay':1 / 4000,
 				},
 				{	'name':'Front wheel',
 					'cond':1,
-					'decay':1 / 8000,
+					'decay':1 / 10000,
 				},
 				{	'name':'Rear wheel',
 					'cond':1,
-					'decay':1 / 8000,
+					'decay':1 / 10000,
 				},
 				{	'name':'Brakepads',
 					'cond':1,
-					'decay':1 / 400,
+					'decay':1 / 600,
 				},
 				{	'name':'Chain',
 					'cond':1,
-					'decay':1 / 3000,
+					'decay':1 / 4000,
 				},
 				{	'name':'Frame',
 					'cond':1,
@@ -193,7 +193,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			$scope.obj.tilstop = $scope.obj.tilstopstored;
 			$scope.obj.tilgo = $scope.obj.tilgostored;
 			$scope.obj.tilwake = $scope.obj.tilwakestored;
-			$scope.obj.tilevent = $scope.obj.tileventstored;
+			$scope.obj.tilevent = $scope.eventHandler.decideNextEvent();
 			$scope.messages.create('You have begun your journey',$scope.getTimeNow(),0);
 			$scope.obj.starttime = Date.now(); //stores the start time in timestamp milliseconds, will need later for loading calculations
 			//work out what time is now, adjust sleep pattern accordingly
@@ -383,7 +383,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 							$scope.obj.currdesttime,
 							$scope.obj.tilstop,
 							$scope.obj.tilsleep,
-							//$scope.obj.tilevent //fixme events not implemented yet
+							$scope.obj.tilevent
 						];
 					}
 					smallest = $scope.timeComparison(comparing);
@@ -404,6 +404,10 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 						case 3:
 							$scope.timestep = $scope.obj.tilsleep;
 							//console.log('tilsleep is next thing to happen',$scope.timestep);
+							break;
+						case 4:
+							$scope.timestep = $scope.obj.tilevent;
+							console.log('tilevent is next thing to happen',$scope.timestep);
 							break;
 					}
 				}
@@ -512,7 +516,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 		if($scope.obj.awake && $scope.obj.moving){
 			$scope.incrementDistance($scope.timestep);
-			$scope.healthHandler.updatePartStatus();
+			$scope.partsHandler.updatePartStatus();
 			$scope.eventHandler.checkForEvent();
 			if($scope.obj.currdestdist === 0){
 	            $scope.checkDests(1);
@@ -645,7 +649,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 	};
 
-	$scope.healthHandler = {
+	//functions to handle wear and tear on the bike
+	$scope.partsHandler = {
 		//calculate wear on parts based on rate of wear and distance travelled
 		updatePartStatus: function(){
 			var h = 1;
@@ -671,21 +676,32 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			$scope.messages.create('You fixed your ' + $scope.obj.bike.parts[which].name,$scope.getTimeNow(),0);
 		}
 	};
+	
+	//functions to handle the health of the rider
+	$scope.healthHandler = {
+
+	};
 
 	//functions to handle events
 	$scope.eventHandler = {
+		//pick a random number for when the next event will be
+		decideNextEvent: function(){
+			var max = $scope.onehour * 3;
+			var min = $scope.onehour;
+			return(Math.round(Math.random() * (max - min) + min));
+		},
+		//decrease the event countdown and act if it's reached zero
 		checkForEvent: function(){
-			console.log($scope.obj.tilevent);
+			//console.log($scope.obj.tilevent);
 			$scope.obj.tilevent = Math.floor(Math.max(0,$scope.obj.tilevent - $scope.timestep));
 			//$scope.obj.tilevent = Math.floor(Math.max(0,$scope.obj.tilevent - 4000)); //fixme tmp
 			if($scope.obj.tilevent === 0){
 				$scope.eventHandler.callEvent();
-				var max = $scope.onehour * 3;
-				var min = $scope.onehour;
-				$scope.obj.tilevent = Math.round(Math.random() * (max - min) + min);
+				$scope.obj.tilevent = $scope.eventHandler.decideNextEvent();
 				console.log('tilevent is now',$scope.obj.tilevent);
 			}
 		},
+		//an event has happened, make it so
 		callEvent: function(){
 			var chosen = Math.round((Math.random() * ($scope.events.length - 1) + 1) - 1);
 			console.log('chose event',$scope.events[chosen].name,chosen);
