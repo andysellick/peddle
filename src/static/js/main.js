@@ -52,6 +52,9 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		{	'name':'Achievements',
 			'show':true
 		},
+		{	'name':'Actions',
+			'show':true
+		},
 	];
 
     //map variables
@@ -673,7 +676,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//fix part of the bike
 		fixPart: function(which){
 			$scope.obj.bike.parts[which].fixedat = $scope.obj.distkm;
-			$scope.messages.create('You fixed your ' + $scope.obj.bike.parts[which].name,$scope.getTimeNow(),0);
+			$scope.messages.create('You fixed your ' + $scope.obj.bike.parts[which].name,$scope.getTimeNow(),4);
 		}
 	};
 	
