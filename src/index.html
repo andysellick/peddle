@@ -38,7 +38,7 @@
 </head>
 
 <body>
-    <div data-ng-app="peddler" data-ng-controller="peddlerController as p" data-ng-init="init()">
+    <div data-ng-app="peddler" data-ng-controller="peddlerController as p" data-ng-init="init()" id="p">
     	<div class="mapwrapper">
 	        <div id="map" class="map"></div>
 	    </div>
@@ -66,7 +66,7 @@
 			<p>Distance travelled: {{ obj.totaldistkm|number:2 }}km {{ obj.totaldistkm / 1.6|number:2 }} miles</p>
 			<p>Distance ridden: {{ obj.distkm|number:2 }}km {{ obj.distkm / 1.6|number:2 }} miles</p>
 			<p>Time: {{ obj.totaltime }}</p>
-			<p>Total seconds: {{ obj.seconds * 10000000 | number:0 }} ({{ obj.seconds |number:7 }})</p>
+			<p>Total seconds: {{ obj.seconds | number:0 }}</p>
 			<hr/>
 			<p>Awake: {{ obj.awake }}, Moving: {{ obj.moving }}</p>
 			<div data-ng-if="!obj.onplaneboat">
