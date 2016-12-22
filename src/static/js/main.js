@@ -33,7 +33,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//$scope.numbermultiplier = 1; //some numbers e.g. seconds get stored as a tiny float otherwise it gets huge and breaks js
 	//fixme not sure this was what was breaking it
 
-	$scope.mode = 1; //mode indicates whether we're running in realtime (1) or simulated (0, loading)
+	$scope.loadingmode = 0; //indicates whether we're running in realtime (0) or simulated (1, loading)
 	$scope.timestep = 1; //defaults to 1 second, unless we're loading, in which case we negotiate time in larger chunks
 	$scope.speednerf = 1;
 	$scope.healthnerf = 1;
@@ -180,9 +180,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//on load, check localstorage for previous save
 	$scope.init = function(){
-		//$scope.obj.speedm = 5.36448; //12mph is 5.36448 metres per second, 30kmph is 8.3333 metres per second, 20mph is about 9 metres per second
+		//12mph is 5.36448 metres per second, 30kmph is 8.3333 metres per second, 20mph is about 9 metres per second
 		var saved = localStorage.getItem('peddler');
-		//if there's a save file, load it
 		$scope.dests = dests; //need to do this prior to loading
 		$scope.events = events;
 		//if there's a saved file, load it
@@ -191,6 +190,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			saved = JSON.parse(saved);
 			$scope.obj = saved;
 			$scope.load();
+			console.log('finished loading',$scope.loadingmode);
 		}
 		//otherwise do some initial setup
 		else {
@@ -210,14 +210,13 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			else {
 				$scope.obj.tilsleep = $scope.obj.tilsleepstored;
 			}
+			$scope.checkDests();
+	        $scope.doMap();
 		}
 		if(!$scope.obj.pause){
 			$scope.start();
 		}
-		//set up destination stuff
-		$scope.checkDests();
-		$scope.recalcStuff();
-        $scope.doMap();
+		//$scope.recalcStuff();
 /*
         for(var m = 0; m < $scope.obj.messages.length; m++){
 	        console.log($scope.obj.messages[m]);
@@ -225,7 +224,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 */
 		//reset for realtime operation
 		$scope.timestep = 1;
-		$scope.mode = 1;
+		$scope.loadingmode = 0;
 
 	};
 	
@@ -239,12 +238,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//get the actual date time right now
 	$scope.getTimeNow = function(){
 		var rd;
-		if($scope.mode){
-			rd = new Date();
-		}
-		else {
+		if($scope.loadingmode){
 			rd = $scope.obj.starttime + ($scope.obj.seconds * 1000); //convert obj.seconds to milliseconds
 			rd = new Date(rd);
+		}
+		else {
+			rd = new Date();
 		}
 		return rd.getDate() + '/' + $scope.pad((rd.getMonth()+1),2)  + '/' + rd.getFullYear() + ' @ ' + $scope.pad(rd.getHours(),2) + ':' + $scope.pad(rd.getMinutes(),2) + ':' + $scope.pad(rd.getSeconds(),2);
 	};
@@ -294,6 +293,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
         }
     };
     
+    //fixme not really using this at the moment
 	//general single function to call if we change gear, weather, etc.
 	$scope.recalcStuff = function(){
 		$scope.calcWeight();
@@ -326,6 +326,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 	};
 
+	//FIXME deleting the save in Chrome deletes it in Firefox on the same computer, and vice versa. What??
 	//clear localstorage
 	$scope.deleteSave = function(){
 		console.log('delete');
@@ -342,7 +343,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//called on init if save found
 	$scope.load = function(){
-		$scope.mode = 0;
+		$scope.loadingmode = 1;
         var now = Math.floor(Date.now() / 1000);
         var diff = now - $scope.obj.timestamp;
         $scope.loaddiff = diff;
@@ -394,23 +395,23 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					switch(smallest){
 						case 0:
 							$scope.timestep = $scope.loaddiff;
-							console.log('loaddiff is next thing to happen',$scope.timestep);
+							//console.log('loaddiff is next thing to happen',$scope.timestep,comparing);
 							break;
 						case 1:
 							$scope.timestep = $scope.obj.currdesttime;
-							console.log('currdesttime is next thing to happen',$scope.timestep);
+							//console.log('currdesttime is next thing to happen',$scope.timestep,comparing);
 							break;
 						case 2:
 							$scope.timestep = $scope.obj.tilstop;
-							console.log('tilstop is next thing to happen',$scope.obj.tilstop);
+							//console.log('tilstop is next thing to happen',$scope.obj.tilstop,comparing);
 							break;
 						case 3:
 							$scope.timestep = $scope.obj.tilsleep;
-							console.log('tilsleep is next thing to happen',$scope.timestep);
+							//console.log('tilsleep is next thing to happen',$scope.timestep,comparing);
 							break;
 						case 4:
 							$scope.timestep = $scope.obj.tilevent;
-							console.log('tilevent is next thing to happen',$scope.timestep);
+							//console.log('tilevent is next thing to happen',$scope.timestep,comparing);
 							break;
 					}
 				}
@@ -423,11 +424,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					switch(smallest){
 						case 0:
 							$scope.timestep = $scope.loaddiff;
-							console.log('loaddiff is next thing to happen',$scope.timestep);
+							//console.log('loaddiff is next thing to happen',$scope.timestep,comparing);
 							break;
 						case 1:
 							$scope.timestep = $scope.obj.tilgo;
-							console.log('tilgo is next thing to happen',$scope.timestep);
+							//console.log('tilgo is next thing to happen',$scope.timestep,comparing);
 							break;
 					}
 				}
@@ -441,11 +442,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				switch(smallest){
 					case 0:
 						$scope.timestep = $scope.loaddiff;
-						console.log('loaddiff is next thing to happen',$scope.timestep);
+						//console.log('loaddiff is next thing to happen',$scope.timestep,comparing);
 						break;
 					case 1:
 						$scope.timestep = $scope.obj.tilwake;
-						console.log('tilwake is next thing to happen',$scope.timestep);
+						//console.log('tilwake is next thing to happen',$scope.timestep,comparing);
 						break;
 				}
 			}
@@ -454,7 +455,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 		else {
 			console.log('diff used up, returning to normal operation');
-			$scope.mode = 1;
+			$scope.loadingmode = 0;
 		}
     };
     
@@ -468,11 +469,13 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				$scope.obj.currdesttime = Math.round(($scope.obj.currdestdist / $scope.obj.speedkmph) * $scope.onehour);
 			}
 			//console.log('recalculating CurrDestTime',$scope.obj.currdesttime,$scope.obj.currdestdist,$scope.currdest);
-			console.log('getCurrDestTime',$scope.currdest,$scope.obj.currdesttime);
+			if($scope.loadingmode){
+				console.log('getCurrDestTime',$scope.currdest,$scope.obj.currdesttime);
+			}
 		}
 	};
 
-	//calculate time so far
+	//calculate time so far, just for display purposes
 	$scope.calcTime = function(){
 		var totaltime = $scope.obj.seconds;
 		var days = Math.floor(totaltime / 86400);
@@ -502,49 +505,61 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		else { //we're on a plane or boat
 			newdist = (($scope.obj.speedkmph / 3600) * $scope.obj.timespeed) * incrementby;
 		}
-		$scope.obj.totaldistkm = $scope.obj.totaldistkm + newdist; //total travelled
+		$scope.obj.totaldistkm += newdist; //total travelled
 		$scope.obj.currdestdist = Math.max(0,$scope.obj.currdestdist - newdist);
 
-		console.log('incrementDistance',newdist,incrementby);
-
+		if($scope.loadingmode){
+			console.log('currdestdist',$scope.obj.currdestdist - newdist); //fixme when loading we're losing distance as sometimes this comes out as a negative number
+			console.log('incrementDistance',newdist,incrementby);
+		}
+/*
+	//fixme this is probably not necessary and may even be causing massive bugs
 		//if we're loading, need to also increment the time
-		if(!$scope.mode){
+		if($scope.loadingmode){
 			$scope.obj.seconds += (incrementby / 1000); //fixme is this right? definitely getting confused between seconds and milliseconds
 		}
-
+*/
 	};
 
 	//main loop
 	$scope.newLoop = function(){
-		//console.log('newLoop, timestep is:',$scope.timestep);
+		console.log('newLoop, timestep is:',$scope.timestep,'loadingmode is:',$scope.loadingmode,'loaddiff is:',$scope.loaddiff);
 		$scope.incrementTime();
 		$scope.calcTime();
 		if(!$scope.obj.onplaneboat){
 			$scope.timings.checkRest();
 			$scope.timings.checkSleep(); //fixme need to decide what to do about sleep on a boat/plane
 		}
-
+		//don't do some things unless we're actually moving
 		if($scope.obj.awake && $scope.obj.moving){
-			console.log('awake and moving',$scope.obj.currdestdist,$scope.obj.currdesttime,$scope.getTimeNow());
+			if($scope.loadingmode){
+				console.log('awake and moving',$scope.obj.currdestdist,$scope.obj.currdesttime,$scope.getTimeNow());
+			}
 			$scope.getCurrDestTime();
-			console.log($scope.getTimeNow());
+			if($scope.loadingmode){
+				console.log($scope.getTimeNow());
+			}
 			$scope.incrementDistance($scope.timestep);
-			console.log($scope.getTimeNow());
+			if($scope.loadingmode){
+				console.log($scope.getTimeNow());
+			}
 			$scope.partsHandler.updatePartStatus();
 			$scope.eventHandler.checkForEvent();
+
 			if($scope.obj.currdestdist === 0){
 				console.log('about to check dests',$scope.obj.currdestdist,$scope.obj.currdesttime,$scope.getTimeNow());
 	            $scope.checkDests(1);
-	            if($scope.mode){ //only draw the map once the loading has finished, otherwise geocoder gets really confused
-		            $scope.doMap();
-				}
 	        }
 		}
 		//if we're not running in realtime, call loadloop again, otherwise newLoop is called by an interval
-		if(!$scope.mode){
-			//console.log('mode = loading, continuing');
+		if($scope.loadingmode){
+			//console.log('loadingmode = loading, continuing');
 			if($scope.loaddiff){
 				$scope.loadLoop();
+			}
+			else { //only draw the map once the loading has finished, otherwise geocoder gets really confused
+            	console.log('drawing map');
+	            $scope.doMap();
 			}
 		}
 
@@ -694,15 +709,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	
 	//functions to handle the health of the rider
 	$scope.healthHandler = {
-
 	};
 
 	//functions to handle events
 	$scope.eventHandler = {
 		//pick a random number for when the next event will be
 		decideNextEvent: function(){
-			var max = $scope.onehour * 3;
-			var min = $scope.onehour;
+			var max = $scope.onehour * 6;
+			var min = $scope.onehour * 2;
 			return(Math.round(Math.random() * (max - min) + min));
 		},
 		//decrease the event countdown and act if it's reached zero
@@ -732,7 +746,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			if($scope.obj.awake){
 				$scope.obj.tilsleep = Math.max(0,$scope.obj.tilsleep - ($scope.timestep * $scope.obj.timespeed));
 				if($scope.obj.tilsleep === 0){
-					$scope.messages.create('You stopped to sleep',$scope.getTimeNow(),1);
+					$scope.messages.create('You stopped for the night',$scope.getTimeNow(),1);
 					$scope.obj.awake = 0;
 					$scope.obj.moving = 0;
 				}
@@ -741,7 +755,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				$scope.obj.tilwake = Math.max(0,$scope.obj.tilwake - ($scope.timestep * $scope.obj.timespeed));
 				if($scope.obj.tilwake === 0){
 					//fixme add time here
-					$scope.messages.create('You woke up',$scope.getTimeNow(),1);
+					$scope.messages.create('You got up and set off',$scope.getTimeNow(),1);
 					console.log('You woke up',$scope.getTimeNow());
 					$scope.obj.awake = 1;
 					$scope.obj.moving = 1;
@@ -873,7 +887,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 									console.log('Directions service returned:',response);
 									directionsDisplay.setMap($scope.map);
 								} else {
-									console.log('Directions Request from ' + request.origin.toUrlValue(6) + ' to ' + request.destination.toUrlValue(6) + ' failed: ' + status);
+									//console.log('Directions Request from ' + request.origin.toUrlValue(6) + ' to ' + request.destination.toUrlValue(6) + ' failed: ' + status);
 								}
 							});
 						}
