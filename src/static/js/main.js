@@ -306,7 +306,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.stop();
 		promise = $interval(function(){
 			$scope.newLoop();
-		},1000);
+		},$scope.timestep * 1000);
 	};
 
 	//stop timing interval
@@ -453,10 +453,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			$scope.loaddiff = Math.max(0,$scope.loaddiff - $scope.timestep);
 			$scope.newLoop();
 		}
-		else {
-			console.log('diff used up, returning to normal operation');
-			$scope.loadingmode = 0;
-		}
     };
     
     //calculate how long to current destination at current speed
@@ -496,6 +492,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	};
 	
 	//increment distance, based on speed
+	//FIXME is the mysterious bug here?
 	$scope.incrementDistance = function(incrementby){
 		var newdist = 0;
 		if(!$scope.obj.onplaneboat){ //we're riding
@@ -507,11 +504,12 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 		$scope.obj.totaldistkm += newdist; //total travelled
 		$scope.obj.currdestdist = Math.max(0,$scope.obj.currdestdist - newdist);
-
+		/*
 		if($scope.loadingmode){
 			console.log('currdestdist',$scope.obj.currdestdist - newdist); //fixme when loading we're losing distance as sometimes this comes out as a negative number
 			console.log('incrementDistance',newdist,incrementby);
 		}
+		*/
 /*
 	//fixme this is probably not necessary and may even be causing massive bugs
 		//if we're loading, need to also increment the time
@@ -523,7 +521,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//main loop
 	$scope.newLoop = function(){
-		console.log('newLoop, timestep is:',$scope.timestep,'loadingmode is:',$scope.loadingmode,'loaddiff is:',$scope.loaddiff);
+		//console.log('newLoop, timestep is:',$scope.timestep,'loadingmode is:',$scope.loadingmode,'loaddiff is:',$scope.loaddiff);
 		$scope.incrementTime();
 		$scope.calcTime();
 		if(!$scope.obj.onplaneboat){
@@ -536,13 +534,20 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				console.log('awake and moving',$scope.obj.currdestdist,$scope.obj.currdesttime,$scope.getTimeNow());
 			}
 			$scope.getCurrDestTime();
+			/*
 			if($scope.loadingmode){
 				console.log($scope.getTimeNow());
+			}
+			*/
+			if($scope.loadingmode){
+				console.log('currdestdist is:',$scope.obj.currdestdist);
 			}
 			$scope.incrementDistance($scope.timestep);
+			/*
 			if($scope.loadingmode){
 				console.log($scope.getTimeNow());
 			}
+			*/
 			$scope.partsHandler.updatePartStatus();
 			$scope.eventHandler.checkForEvent();
 
@@ -727,13 +732,13 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			if($scope.obj.tilevent === 0){
 				$scope.eventHandler.callEvent();
 				$scope.obj.tilevent = $scope.eventHandler.decideNextEvent();
-				console.log('tilevent is now',$scope.obj.tilevent);
+				//console.log('tilevent is now',$scope.obj.tilevent);
 			}
 		},
 		//an event has happened, make it so
 		callEvent: function(){
 			var chosen = Math.round((Math.random() * ($scope.events.length - 1) + 1) - 1);
-			console.log('chose event',$scope.events[chosen].name,chosen);
+			//console.log('chose event',$scope.events[chosen].name,chosen);
 			$scope.events[chosen].result();
 		}
 	};
