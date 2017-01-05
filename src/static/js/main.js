@@ -190,6 +190,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			saved = JSON.parse(saved);
 			$scope.obj = saved;
 			$scope.load();
+            console.log('drawing map');
+            $scope.doMap();
 			console.log('finished loading',$scope.loadingmode);
 		}
 		//otherwise do some initial setup
@@ -489,7 +491,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	};
 	
 	//increment distance, based on speed
-	//FIXME is the mysterious bug here?
 	$scope.incrementDistance = function(incrementby){
 		var newdist = 0;
 		if(!$scope.obj.onplaneboat){ //we're riding
@@ -504,30 +505,34 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		if($scope.loadingmode){
 			console.log('currdestdist is:',$scope.obj.currdestdist,'incrementby',incrementby);
 		}
-		/*
+
 		if($scope.loadingmode){
-			console.log('currdestdist',$scope.obj.currdestdist - newdist); //fixme when loading we're losing distance as sometimes this comes out as a negative number
-			console.log('incrementDistance',newdist,incrementby);
+			//console.log('currdestdist',$scope.obj.currdestdist - newdist); //fixme when loading we're losing distance as sometimes this comes out as a negative number
+			//console.log('incrementDistance',newdist,incrementby);
+			var tmp = $scope.obj.currdestdist - newdist;
+			if(tmp < 0){
+				console.log('distance error:',tmp);
+			}
+			else {
+				console.log('no distance error');
+			}
 		}
-		*/
+
 	};
 
 	//main loop
 	$scope.newLoop = function(){
+		/*
 		if($scope.loadingmode){
 			console.log('newLoop, timestep is:',$scope.timestep,'loadingmode is:',$scope.loadingmode,'loaddiff is:',$scope.loaddiff,$scope.getTimeNow());
 		}
+		*/
 		$scope.incrementTime();
 		$scope.calcTime();
 		if(!$scope.obj.onplaneboat){
 			$scope.timings.checkRest();
-			$scope.timings.checkSleep(); //fixme need to decide what to do about sleep on a boat/plane
+			$scope.timings.checkSleep();
 		}
-
-		/*
-			bug here - we wake up (above) but then immediately go into the next thing, ie. checking distances, but
-			the timestep hasn't been reset (still on length of sleep) so incrementDistance is overcalculated below and we jump to the next stop
-		*/
 
 		//don't do some things unless we're actually moving
 		if($scope.obj.awake && $scope.obj.moving){
@@ -566,8 +571,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				//reset for realtime operation before exiting the loading loop and returning to normal operation
 				$scope.timestep = 1;
 				$scope.loadingmode = 0;
-            	console.log('drawing map');
-	            $scope.doMap();
+	            //fixme this now doesn't update the map when reaching a new destination in realtime
 			}
 		}
 
@@ -725,7 +729,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		decideNextEvent: function(){
 			var max = $scope.onehour * 6;
 			var min = $scope.onehour * 2;
-			return(Math.round(Math.random() * (max - min) + min));
+			//return(Math.round(Math.random() * (max - min) + min)); //fixme temp removing all random elements
+			return(min);
 		},
 		//decrease the event countdown and act if it's reached zero
 		checkForEvent: function(){
@@ -755,7 +760,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				$scope.obj.tilsleep = Math.max(0,$scope.obj.tilsleep - ($scope.timestep * $scope.obj.timespeed));
 				if($scope.obj.tilsleep === 0){
 					$scope.messages.create('You stopped for the night',$scope.getTimeNow(),1);
-					console.log('You stopped for the night',$scope.getTimeNow(),'currdestdist is:',$scope.obj.currdestdist);
+					//console.log('You stopped for the night',$scope.getTimeNow(),'currdestdist is:',$scope.obj.currdestdist);
 					$scope.obj.awake = 0;
 					$scope.obj.moving = 0;
 				}
@@ -765,7 +770,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				if($scope.obj.tilwake === 0){
 					//fixme add time here
 					$scope.messages.create('You got up and set off',$scope.getTimeNow(),1);
-					console.log('You woke up',$scope.getTimeNow(),'currdestdist is:',$scope.obj.currdestdist);
+					//console.log('You woke up',$scope.getTimeNow(),'currdestdist is:',$scope.obj.currdestdist);
 					$scope.obj.awake = 1;
 					$scope.obj.moving = 1;
 					$scope.timings.resets.resetTilsleep();
@@ -786,6 +791,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					//console.log($scope.obj.tilstop);
 					if($scope.obj.tilstop === 0){
 						$scope.messages.create('You stopped for a rest',$scope.getTimeNow(),1);
+						//console.log('You stopped for a rest',$scope.getTimeNow());
 						$scope.obj.moving = 0;
 					}
 				}

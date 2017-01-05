@@ -126,7 +126,7 @@
 			<div data-ng-repeat="gear in obj.bike.parts">
 				<p>
 					{{ gear.name }} {{ gear.cond * 100|number:0 }}%
-					<span class="btn btn-small float-right" data-ng-if="gear.cond < 1" data-ng-click="partsHandler.fixPart($index)">Fix</span>
+					<span class="btn btn-small float-right" data-ng-if="gear.cond < 0.99" data-ng-click="partsHandler.fixPart($index)">Fix</span>
 				</p>
 				<div class="progresswrapper clean small">
 					<div class="progress" style="width: {{ gear.cond * 100|number:0 }}%;"></div>
