@@ -77,7 +77,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		'starttime':'',
 		'seconds':0,
 		'totaltime':0, //human readable form of time taken
-		'speedkmph':30,
+		'speedkmph':29,
 		'speedkmphstored':0, //used to store our original speed while it changes e.g. if on a boat fixme
 		'timespeed':1,
 		'timestamp':0,
@@ -257,7 +257,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
             //console.log($scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
 			//console.log('new destination,',$scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc,$scope.obj.currdesttime);
             $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),0);
-            console.log('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow());
+            console.log('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),'currdestdist:',$scope.obj.currdestdist);
 			if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane
 				$scope.getCurrDestTime();
 				//console.log('currently on a boat/plane',$scope.obj.currdesttime);
@@ -340,7 +340,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//called on init if save found
 	$scope.load = function(){
-		console.log($scope.obj.currdest,$scope.currdest);
+		console.log('load',$scope.obj.currdest,$scope.currdest);
 		$scope.loadingmode = 1;
         var now = Math.floor(Date.now() / 1000);
         var diff = now - $scope.obj.timestamp;
@@ -452,23 +452,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			$scope.newLoop();
 		}
     };
-    
-    //calculate how long to current destination at current speed
-    $scope.getCurrDestTime = function(){
-		//console.log('getCurrDestTime',$scope.obj.moving,$scope.currdest,$scope.obj.currdest,$scope.obj.currdestdist);
-		if($scope.obj.moving && $scope.obj.currdest){ //sometimes there isn't a currdest, so large loading calculations can break horribly, hence this check
-			if(!$scope.obj.onplaneboat){
-				$scope.obj.currdesttime = Math.round(($scope.obj.currdestdist / ($scope.obj.speedkmph * $scope.speednerf)) * $scope.onehour);
-			}
-			else {
-				$scope.obj.currdesttime = Math.round(($scope.obj.currdestdist / $scope.obj.speedkmph) * $scope.onehour);
-			}
-			//console.log('recalculating CurrDestTime',$scope.obj.currdesttime,$scope.obj.currdestdist,$scope.currdest);
-			if($scope.loadingmode){
-				console.log('result of getCurrDestTime:',$scope.currdest,$scope.obj.currdesttime,'currdestdist is:',$scope.obj.currdestdist);
-			}
-		}
-	};
 
 	//calculate time so far, just for display purposes
 	$scope.calcTime = function(){
@@ -500,33 +483,53 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		else { //we're on a plane or boat
 			newdist = (($scope.obj.speedkmph / 3600) * $scope.obj.timespeed) * incrementby;
 		}
-		$scope.obj.totaldistkm += newdist; //total travelled
-		$scope.obj.currdestdist = Math.max(0,$scope.obj.currdestdist - newdist);
-		if($scope.loadingmode){
-			console.log('currdestdist is:',$scope.obj.currdestdist,'incrementby',incrementby);
-		}
 
+		//when loading we're losing distance as sometimes this comes out as a negative number
+		//but the resulting distance is negligable. Probably. Still weird that it happens at all
 		if($scope.loadingmode){
-			//console.log('currdestdist',$scope.obj.currdestdist - newdist); //fixme when loading we're losing distance as sometimes this comes out as a negative number
-			//console.log('incrementDistance',newdist,incrementby);
 			var tmp = $scope.obj.currdestdist - newdist;
 			if(tmp < 0){
 				console.log('distance error:',tmp);
 			}
+			/*
 			else {
-				console.log('no distance error');
+				console.log('no distance error',tmp);
+			}
+			*/
+		}
+		$scope.obj.totaldistkm += newdist; //total travelled
+		$scope.obj.currdestdist = Math.max(0,$scope.obj.currdestdist - newdist);
+		if($scope.loadingmode){
+			console.log('incrementDistance - currdestdist is:',$scope.obj.currdestdist,'currdesttime:',$scope.obj.currdesttime,'incrementby',incrementby);
+		}
+	};
+
+    //calculate how long to current destination at current speed
+    $scope.getCurrDestTime = function(){
+		//console.log('getCurrDestTime',$scope.obj.moving,$scope.currdest,$scope.obj.currdest,$scope.obj.currdestdist);
+		if($scope.obj.currdest){ //sometimes there isn't a currdest, so large loading calculations can break horribly, hence this check
+			if(!$scope.obj.onplaneboat){
+				$scope.obj.currdesttime = Math.round(($scope.obj.currdestdist / ($scope.obj.speedkmph * $scope.speednerf)) * $scope.onehour);
+			}
+			else {
+				$scope.obj.currdesttime = Math.round(($scope.obj.currdestdist / $scope.obj.speedkmph) * $scope.onehour);
+			}
+			//console.log('recalculating CurrDestTime',$scope.obj.currdesttime,$scope.obj.currdestdist,$scope.currdest);
+			if($scope.loadingmode){
+				console.log('result of getCurrDestTime:',$scope.currdest,$scope.obj.currdesttime,'currdestdist:',$scope.obj.currdestdist,'currdestime:',$scope.obj.currdesttime);
 			}
 		}
-
 	};
 
 	//main loop
 	$scope.newLoop = function(){
-		/*
 		if($scope.loadingmode){
-			console.log('newLoop, timestep is:',$scope.timestep,'loadingmode is:',$scope.loadingmode,'loaddiff is:',$scope.loaddiff,$scope.getTimeNow());
+			console.log('newLoop, timestep is:',$scope.timestep,$scope.getTimeNow(),'awake/moving:',$scope.obj.awake,$scope.obj.moving,'currdestdist:',$scope.obj.currdestdist,'currdesttime:',$scope.obj.currdesttime);
 		}
-		*/
+		if($scope.obj.awake && $scope.obj.moving){
+			$scope.getCurrDestTime();
+			$scope.incrementDistance($scope.timestep);
+		}
 		$scope.incrementTime();
 		$scope.calcTime();
 		if(!$scope.obj.onplaneboat){
@@ -536,28 +539,27 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 		//don't do some things unless we're actually moving
 		if($scope.obj.awake && $scope.obj.moving){
-			/*
 			if($scope.loadingmode){
-				console.log('awake and moving',$scope.obj.currdestdist,$scope.obj.currdesttime,$scope.getTimeNow());
+				console.log('awake and moving',$scope.obj.currdesttime,$scope.getTimeNow(),'currdestdist:',$scope.obj.currdestdist,'currdesttime:',$scope.obj.currdesttime);
 			}
-			*/
-			$scope.getCurrDestTime();
-			/*
-			if($scope.loadingmode){
-				console.log($scope.getTimeNow());
-			}
-			*/
-			$scope.incrementDistance($scope.timestep);
+			//$scope.getCurrDestTime();
 			/*
 			if($scope.loadingmode){
 				console.log($scope.getTimeNow());
 			}
 			*/
+			//$scope.incrementDistance($scope.timestep);
+			/*
+			if($scope.loadingmode){
+				console.log($scope.getTimeNow());
+			}
+			*/
+			//fixme need to disable these two if on plane/boat
 			$scope.partsHandler.updatePartStatus();
 			$scope.eventHandler.checkForEvent();
 
 			if($scope.obj.currdestdist === 0){
-				console.log('about to check dests',$scope.obj.currdestdist,$scope.obj.currdesttime,$scope.getTimeNow());
+				console.log('about to check dests',$scope.obj.currdesttime,$scope.getTimeNow(),'currdestdist:',$scope.obj.currdestdist);
 	            $scope.checkDests(1);
 	        }
 		}
@@ -729,8 +731,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		decideNextEvent: function(){
 			var max = $scope.onehour * 6;
 			var min = $scope.onehour * 2;
-			//return(Math.round(Math.random() * (max - min) + min)); //fixme temp removing all random elements
-			return(min);
+			//return(Math.round(Math.random() * (max - min) + min)); //fixme temp removing all random elements, for some reason this causes changes every time you load
+			return(min); //fixme if this is a random number the loading jumps all over the place
 		},
 		//decrease the event countdown and act if it's reached zero
 		checkForEvent: function(){
@@ -740,6 +742,10 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			if($scope.obj.tilevent === 0){
 				$scope.eventHandler.callEvent();
 				$scope.obj.tilevent = $scope.eventHandler.decideNextEvent();
+				if($scope.loadingmode){
+					//$scope.getCurrDestTime();
+					$scope.loadLoop();
+				}
 				//console.log('tilevent is now',$scope.obj.tilevent);
 			}
 		},
@@ -760,9 +766,13 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				$scope.obj.tilsleep = Math.max(0,$scope.obj.tilsleep - ($scope.timestep * $scope.obj.timespeed));
 				if($scope.obj.tilsleep === 0){
 					$scope.messages.create('You stopped for the night',$scope.getTimeNow(),1);
-					//console.log('You stopped for the night',$scope.getTimeNow(),'currdestdist is:',$scope.obj.currdestdist);
+					console.log('You stopped for the night',$scope.getTimeNow(),'currdestdist:',$scope.obj.currdestdist,'currdestime:',$scope.obj.currdesttime);
 					$scope.obj.awake = 0;
 					$scope.obj.moving = 0;
+					if($scope.loadingmode){
+						$scope.getCurrDestTime();
+						$scope.loadLoop();
+					}
 				}
 			}
 			else {
@@ -770,13 +780,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				if($scope.obj.tilwake === 0){
 					//fixme add time here
 					$scope.messages.create('You got up and set off',$scope.getTimeNow(),1);
-					//console.log('You woke up',$scope.getTimeNow(),'currdestdist is:',$scope.obj.currdestdist);
+					console.log('You woke up',$scope.getTimeNow(),'currdestdist:',$scope.obj.currdestdist,'currdestime:',$scope.obj.currdesttime);
 					$scope.obj.awake = 1;
 					$scope.obj.moving = 1;
 					$scope.timings.resets.resetTilsleep();
 					$scope.timings.resets.resetTilwake();
 					$scope.timings.resets.resetTilstop();
 					if($scope.loadingmode){
+						$scope.getCurrDestTime();
 						$scope.loadLoop();
 					}
 				}
@@ -791,17 +802,28 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 					//console.log($scope.obj.tilstop);
 					if($scope.obj.tilstop === 0){
 						$scope.messages.create('You stopped for a rest',$scope.getTimeNow(),1);
-						//console.log('You stopped for a rest',$scope.getTimeNow());
+						console.log('You stopped for a rest',$scope.getTimeNow(),'currdestdist:',$scope.obj.currdestdist,'currdestime:',$scope.obj.currdesttime);
 						$scope.obj.moving = 0;
+						if($scope.loadingmode){
+							$scope.getCurrDestTime();
+							$scope.loadLoop();
+						}
 					}
 				}
 				else {
 					$scope.obj.tilgo = Math.max(0,$scope.obj.tilgo - ($scope.timestep * $scope.obj.timespeed));
 					if($scope.obj.tilgo === 0){
 						$scope.messages.create('You set off again',$scope.getTimeNow(),1);
+						console.log('You set off again',$scope.getTimeNow(),'currdestdist:',$scope.obj.currdestdist,'currdestime:',$scope.obj.currdesttime);
 						$scope.obj.moving = 1;
 						$scope.timings.resets.resetTilstop();
 						$scope.timings.resets.resetTilgo();
+						//fixme similar problem to above here - if we start moving sometimes we immediately reach the next
+						//dest - can't be fixed in the same way as the similar sleep bug, however
+						if($scope.loadingmode){
+							$scope.getCurrDestTime();
+							$scope.loadLoop();
+						}
 					}
 				}
 			}
