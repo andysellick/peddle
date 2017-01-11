@@ -7,19 +7,19 @@ var events = [
 	'healthdamage':0,
 
 	'result': function(){
-		//console.log('puncture');
+		console.log('EVENT puncture');
 	}
 },
 {	'name':'Accident',
 	'message':'You were involved in an accident.',
 	'result': function(){
-		//console.log('accident');
+		console.log('EVENT accident');
 	}
 },
 {	'name':'Picture',
 	'message':'You stopped to take a picture',
 	'result': function(){
-		//console.log('picture');
+		console.log('EVENT picture');
 	}
 },
 ];

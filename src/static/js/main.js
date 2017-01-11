@@ -259,11 +259,11 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
             $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),0);
             console.log('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),'currdestdist:',$scope.obj.currdestdist);
 			if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane
-				$scope.getCurrDestTime();
+				//$scope.getCurrDestTime();
 				//console.log('currently on a boat/plane',$scope.obj.currdesttime);
 				$scope.obj.onplaneboat = $scope.dests[$scope.obj.currdest].type;
 				//fixme experimental - only reset sleep if the plane/boat journey time is longer than the time between now and sleep plus the length of sleep
-				//would be good to do something a bit cleverer than this, but at least it keeps the sleep time consistent
+				//would be good to do something a bit cleverer than this, but at least it keeps the sleep time consistent. I think.
 				if($scope.obj.currdesttime > $scope.obj.tilsleep + $scope.obj.tilwake){
 					$scope.timings.resets.resetTilsleep();
 					$scope.timings.resets.resetTilwake();
@@ -274,11 +274,13 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				$scope.obj.speedkmph = $scope.boatplanespeeds[$scope.dests[$scope.obj.currdest].type];
 			}
 			else {
+				//$scope.getCurrDestTime();
 				if($scope.obj.onplaneboat){
 					$scope.obj.onplaneboat = 0;
 					$scope.obj.speedkmph = $scope.obj.speedkmphstored;
 				}
 			}
+			$scope.getCurrDestTime();
 		}
   		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
   		$scope.prevdest = Math.max(0,$scope.obj.currdest - 1);
@@ -367,6 +369,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//decide how long until next thing - sleep, rest, new destination, event
 	//call newLoop with that time length and a call to the function to handle the upcoming thing
 	$scope.loadLoop = function(){
+		console.log('loadLoop');
 		if($scope.loaddiff > 0){
 			var comparing = [];
 			var smallest = 0;
@@ -500,7 +503,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		$scope.obj.totaldistkm += newdist; //total travelled
 		$scope.obj.currdestdist = Math.max(0,$scope.obj.currdestdist - newdist);
 		if($scope.loadingmode){
-			console.log('incrementDistance - currdestdist is:',$scope.obj.currdestdist,'currdesttime:',$scope.obj.currdesttime,'incrementby',incrementby);
+			console.log('incrementDistance, currdestdist is:',$scope.obj.currdestdist,'currdesttime:',$scope.obj.currdesttime,'incrementby',incrementby);
 		}
 	};
 
@@ -509,14 +512,14 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//console.log('getCurrDestTime',$scope.obj.moving,$scope.currdest,$scope.obj.currdest,$scope.obj.currdestdist);
 		if($scope.obj.currdest){ //sometimes there isn't a currdest, so large loading calculations can break horribly, hence this check
 			if(!$scope.obj.onplaneboat){
-				$scope.obj.currdesttime = Math.round(($scope.obj.currdestdist / ($scope.obj.speedkmph * $scope.speednerf)) * $scope.onehour);
+				$scope.obj.currdesttime = Math.ceil(($scope.obj.currdestdist / ($scope.obj.speedkmph * $scope.speednerf)) * $scope.onehour);
 			}
 			else {
-				$scope.obj.currdesttime = Math.round(($scope.obj.currdestdist / $scope.obj.speedkmph) * $scope.onehour);
+				$scope.obj.currdesttime = Math.ceil(($scope.obj.currdestdist / $scope.obj.speedkmph) * $scope.onehour);
 			}
 			//console.log('recalculating CurrDestTime',$scope.obj.currdesttime,$scope.obj.currdestdist,$scope.currdest);
 			if($scope.loadingmode){
-				console.log('result of getCurrDestTime:',$scope.currdest,$scope.obj.currdesttime,'currdestdist:',$scope.obj.currdestdist,'currdestime:',$scope.obj.currdesttime);
+				console.log('getCurrDestTime for',$scope.currdest,'currdestdist:',$scope.obj.currdestdist,'currdestime:',$scope.obj.currdesttime);
 			}
 		}
 	};
@@ -524,7 +527,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	//main loop
 	$scope.newLoop = function(){
 		if($scope.loadingmode){
-			console.log('newLoop, timestep is:',$scope.timestep,$scope.getTimeNow(),'awake/moving:',$scope.obj.awake,$scope.obj.moving,'currdestdist:',$scope.obj.currdestdist,'currdesttime:',$scope.obj.currdesttime);
+			console.log(' ');
+			console.log('newLoop, timestep is',$scope.timestep,$scope.getTimeNow(),'awake/moving:',$scope.obj.awake,$scope.obj.moving,'currdestdist:',$scope.obj.currdestdist,'currdesttime:',$scope.obj.currdesttime);
 		}
 		if($scope.obj.awake && $scope.obj.moving){
 			$scope.getCurrDestTime();
@@ -730,14 +734,16 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		//pick a random number for when the next event will be
 		decideNextEvent: function(){
 			var max = $scope.onehour * 6;
-			var min = $scope.onehour * 2;
-			//return(Math.round(Math.random() * (max - min) + min)); //fixme temp removing all random elements, for some reason this causes changes every time you load
-			return(min); //fixme if this is a random number the loading jumps all over the place
+			var min = $scope.onehour;
+			var ret = Math.round(Math.random() * (max - min) + min);
+			console.log('Deciding next random event will be',ret);
+			return(ret); //fixme temp removing all random elements, for some reason this causes changes every time you load
+			//return(min); //fixme if this is a random number the loading jumps all over the place
 		},
 		//decrease the event countdown and act if it's reached zero
 		checkForEvent: function(){
 			//console.log($scope.obj.tilevent);
-			$scope.obj.tilevent = Math.floor(Math.max(0,$scope.obj.tilevent - $scope.timestep));
+			$scope.obj.tilevent = Math.max(0,$scope.obj.tilevent - $scope.timestep);
 			//$scope.obj.tilevent = Math.floor(Math.max(0,$scope.obj.tilevent - 4000)); //fixme tmp
 			if($scope.obj.tilevent === 0){
 				$scope.eventHandler.callEvent();
@@ -990,7 +996,9 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 	};
 
 	//fixme not in use?
+	/*
 	$scope.oneDecimal = function(num){
         return(Math.round(num * 10) / 10);
     };
+    */
 });
