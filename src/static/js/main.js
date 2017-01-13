@@ -40,6 +40,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	$scope.boatplanespeeds = [0,40,900];
 	
+	//fixme add in achievements
+	//fixme should have achievement for crossing the equator
 	$scope.messagetypes = [
 		{	'name':'Destinations',
 			'show':true
@@ -190,6 +192,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			saved = JSON.parse(saved);
 			$scope.obj = saved;
 			$scope.load();
+			//fixme once we've loaded, we should immediately save
             console.log('drawing map');
             $scope.doMap();
 			console.log('finished loading',$scope.loadingmode);
@@ -212,9 +215,9 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			else {
 				$scope.obj.tilsleep = $scope.obj.tilsleepstored;
 			}
-			$scope.checkDests();
 	        $scope.doMap();
 		}
+		$scope.checkDests();
 		if(!$scope.obj.pause){
 			$scope.start();
 		}
@@ -248,10 +251,9 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
 	//initialise destinations and change destinations
 	$scope.checkDests = function(increment){
-		//console.log('checkDests',$scope.obj.currdest,$scope.dests[$scope.obj.currdest]);
+		console.log('checkDests',$scope.obj.currdest,$scope.dests[$scope.obj.currdest]);
   		//change destination
 		if(increment){
-	  		$scope.currdest = $scope.dests[$scope.obj.currdest].name; //fixme this line is duplicated below
             $scope.obj.currdest++;
             $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
             //console.log($scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
@@ -281,6 +283,9 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				}
 			}
 			$scope.getCurrDestTime();
+			if(!$scope.loadingmode){
+				$scope.doMap();
+			}
 		}
   		$scope.currdest = $scope.dests[$scope.obj.currdest].name;
   		$scope.prevdest = Math.max(0,$scope.obj.currdest - 1);
@@ -749,7 +754,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				$scope.eventHandler.callEvent();
 				$scope.obj.tilevent = $scope.eventHandler.decideNextEvent();
 				if($scope.loadingmode){
-					//$scope.getCurrDestTime();
+					$scope.getCurrDestTime();
 					$scope.loadLoop();
 				}
 				//console.log('tilevent is now',$scope.obj.tilevent);
@@ -864,14 +869,77 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			$scope.deleteMarkers();
 		}
 		var bounds = new google.maps.LatLngBounds(null);
+		var needgeo = 0;
+		//store the points we're navigating to
 		var points = [
 			$scope.dests[$scope.obj.currdest].name + ', ' + $scope.dests[$scope.obj.currdest].loc,
 			$scope.dests[$scope.obj.currdest - 1].name + ', ' + $scope.dests[$scope.obj.currdest - 1].loc,
 		];
+		if($scope.dests[$scope.obj.currdest].hasOwnProperty('ll')){
+			points[0] = new google.maps.LatLng($scope.dests[$scope.obj.currdest].ll[0],$scope.dests[$scope.obj.currdest].ll[1]);
+		}
+		if($scope.dests[$scope.obj.currdest - 1].hasOwnProperty('ll')){
+			points[1] = new google.maps.LatLng($scope.dests[$scope.obj.currdest - 1].ll[0],$scope.dests[$scope.obj.currdest - 1].ll[1]);
+		}
 		//console.log(points);
+		for(var m = 0; m < points.length; m++){
+			var marker = new google.maps.Marker({
+				position: points[m],//latlong,
+				map: $scope.map,
+				//icon: $scope.url_mediapath + markerimg,
+				zoom:1
+			});
+			$scope.markers.push(marker);
+			bounds.extend(marker.position);
+		}
+		
+		if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane, just draw a straight line
+			var line = new google.maps.Polyline({
+				path: [
+					points[1],
+					points[0]
+				],
+				strokeColor: '#FF0000',
+				strokeOpacity: 0.5,
+				strokeWeight: 5,
+				map: $scope.map
+			});
+		}
+		else { //plot an actual driving route
+			var request = {
+				origin: points[1],
+				destination: points[0],
+				travelMode: google.maps.TravelMode.BICYCLING
+			};
+			var directionsDisplay = new google.maps.DirectionsRenderer({
+				suppressMarkers: true,
+				polylineOptions: {
+					strokeColor: $scope.routecolours[$scope.currcolour],
+					strokeOpacity: 0.5,
+					strokeWeight: 5
+			    }
+			});
+			directionsDisplay.setMap($scope.map);
+			var directionsService = new google.maps.DirectionsService();
+			directionsService.route(request, function (response, status) {
+				if (status === google.maps.DirectionsStatus.OK) {
+					directionsDisplay.setDirections(response);
+					console.log('Directions service returned:',response);
+					directionsDisplay.setMap($scope.map);
+				} else {
+					console.log('Directions service error');
+				}
+			});
+		}
+		//fitbounds doesn't work the second time, leaves the map too zoomed out
+		//hacky but works: http://stackoverflow.com/questions/3873195/calling-map-fitbounds-multiple-times-in-google-maps-api-v3-0
+		setTimeout(function() {$scope.map.fitBounds(bounds);},1);
+
+/*
 		var latlngpoints = []; //store the results of the geocoder
 		var lastloop = 0;
 		var geocoder =  new google.maps.Geocoder();
+
 		for(var i = 0; i < points.length; i++){
 			geocoder.geocode( { 'address': points[i]}, function(results, status) { //fixme need to check geocoder is getting the destinations right, spoiler, it isn't, see turkey
 				if(status === google.maps.GeocoderStatus.OK) {
@@ -948,6 +1016,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				}
 			});
 		}
+*/
     };
     
     //remove markers from map
