@@ -25,7 +25,8 @@ if(!Date.now){
 	8 - The number of police cells Mark slept in.
 */
 
-angular.module('peddler', []).controller('peddlerController',function($scope,$interval) {
+angular.module('peddler', []).controller('peddlerController',function($scope,$interval,$timeout,$window) {
+	$scope.promise = 0;
 	$scope.weight = 0;
 	$scope.oneday = 86400; //number of seconds in one day
 	$scope.onehour = 3600; //number of seconds in an hour
@@ -1070,4 +1071,9 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
         return(Math.round(num * 10) / 10);
     };
     */
+
+    $window.onresize = function(){
+		$timeout.cancel($scope.promise);
+		$scope.promise = $timeout(function(){console.log('resize');$scope.doMap();},500);
+	};
 });
