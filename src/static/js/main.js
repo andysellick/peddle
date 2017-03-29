@@ -259,7 +259,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
             $scope.obj.currdestdist = $scope.dests[$scope.obj.currdest].dist;
             //console.log($scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc);
 			//console.log('new destination,',$scope.obj.currdest,$scope.currdest,$scope.dests[$scope.obj.currdest].loc,$scope.obj.currdesttime);
-            $scope.messages.create('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),0);
+            $scope.messages.create('You reached ' + $scope.dests[$scope.obj.currdest - 1].name + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),0);
             console.log('You reached ' + $scope.currdest + ', ' + $scope.dests[$scope.obj.currdest - 1].loc + ' after ' + $scope.obj.totaltime,$scope.getTimeNow(),'currdestdist:',$scope.obj.currdestdist);
 			if($scope.dests[$scope.obj.currdest].hasOwnProperty('type')){ //if route type is a boat or plane
 				//$scope.getCurrDestTime();
@@ -728,6 +728,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		fixPart: function(which){
 			$scope.obj.bike.parts[which].fixedat = $scope.obj.distkm;
 			$scope.messages.create('You fixed your ' + $scope.obj.bike.parts[which].name,$scope.getTimeNow(),4);
+			console.log('You fixed your ' + $scope.obj.bike.parts[which].name,$scope.getTimeNow());
 		}
 	};
 	
