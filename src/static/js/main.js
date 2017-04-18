@@ -911,7 +911,8 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 			var request = {
 				origin: points[1],
 				destination: points[0],
-				travelMode: google.maps.TravelMode.BICYCLING
+				//travelMode: google.maps.TravelMode.BICYCLING
+				travelMode: google.maps.TravelMode.WALKING
 			};
 			var directionsDisplay = new google.maps.DirectionsRenderer({
 				suppressMarkers: true,
