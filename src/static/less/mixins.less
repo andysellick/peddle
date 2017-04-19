@@ -1,17 +1,25 @@
 /* --mixins */
 
 	/* use to generate font sizes based off the default font size of 16px */
-	/* pass the size in px/pt to return a percentage e.g. .fontcalculate(26) would return a font size of 162.5% */
-	.fontcalculate(@size){
-		font-size:(@size / 16) * 100%;
+	/* pass the size in px/pt to return a rem e.g. .fontcalculate(21) would return a font size of 1.3125rem */
+	.fontcalculate(@px){
+		font-size:(@px / 16) * 100%; //fallback for older browsers, creates a percentage value, may cause nesting issues
+		@sizeval:@px / 16;
+		font-size:~"@{sizeval}rem";
 	}
-	
-	/* square aspect ratio elements */
-	.squarewrapper {
+
+	/* calculate line height based on px values from photoshop */
+	/* pass the fontsize and required line height in px, e.g. .lineheight(21,35) would give a line height of 166.667%, with a font size of 21px gives an actual line height of 35px */
+	.lineheight(@fontsize,@lineheight){
+		line-height:@lineheight / (@fontsize / 100%);
+	}
+
+	/* fixed aspect ratio elements, pass 100% to produce a square */
+	.aspect(@height){
 		position: relative;
-		padding-bottom: 100%;
+		padding-bottom: @height;
 		height: 0;
-		.square {
+		.inner {
 			position: absolute;
 			top: 0;
 			left: 0;
@@ -21,7 +29,7 @@
 	}
 
     /* http://zerosixthree.se/vertical-align-anything-with-just-3-lines-of-css/ */
-    .vertalign {
+    .vertalign() {
 		position: relative;
 		top: 50%;
 		.transform( translateY(-50%) );
@@ -45,30 +53,26 @@
             height:auto;
         }
     }
+    
+    /* the following mixins are made redundant by the use of autoprefixer but are kept for projects where gulp is not used */
 
-	/* border radius */
-	.border-radius(@radius: 0.3em) {
-		-webkit-border-radius: @radius;
-		-moz-border-radius   : @radius;
-		border-radius        : @radius;
+	/* usage: .blur(5px) */
+	.blur(@value){
+		-webkit-filter: blur(@value);
+		-moz-filter: blur(@value);
+		-o-filter: blur(@value);
+		-ms-filter: blur(@value);
+		filter: blur(@value);
 	}
 
-    /* GRADIENTS */
-    /* vertical, two colour */
-    .vertical-gradient( @startcolor, @startpoint, @endcolor, @endpoint ) {
+	/* GRADIENTS */
+	/* vertical, two colour */
+	.vertical-gradient( @startcolor, @startpoint, @endcolor, @endpoint ) {
 		background: @endcolor; /* Old browsers */
 		background: -moz-linear-gradient(top, @startcolor @startpoint, @endcolor @endpoint); /* FF3.6-15 */
 		background: -webkit-linear-gradient(top, @startcolor @startpoint,@endcolor @endpoint); /* Chrome10-25,Safari5.1-6 */
 		background: linear-gradient(to bottom, @startcolor @startpoint,@endcolor @endpoint); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
 		filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='@startcolor', endColorstr='@endcolor',GradientType=0 ); /* IE6-9 */
-    }
-	/* vertical, four colours */
-	.vertical-multi-gradient( @color1, @pos1, @color2, @pos2, @color3, @pos3, @color4, @pos4 ){
-		background: @color1; /* Old browsers */
-		background: -moz-linear-gradient(top, @color1 @pos1, @color2 @pos2, @color3 @pos3, @color4 @pos4); /* FF3.6-15 */
-		background: -webkit-linear-gradient(top, @color1 @pos1,@color2 @pos2,@color3 @pos3,@color4 @pos4); /* Chrome10-25,Safari5.1-6 */
-		background: linear-gradient(to bottom, @color1 @pos1,@color2 @pos2,@color3 @pos3,@color4 @pos4); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-		filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='@color1', endColorstr='@color4',GradientType=0 ); /* IE6-9 */
 	}
 	/* Only for modern browsers. IE8 and 9 will only show the background image and one colour */
 	/* note also that this defaults to no-repeat, top left, but this can be overridden */
@@ -78,7 +82,6 @@
 		background: url(@image), -webkit-linear-gradient(top, @startcolor @startpoint,@endcolor @endpoint); /* Chrome10-25,Safari5.1-6 */
 		background: url(@image), linear-gradient(to bottom, @startcolor @startpoint,@endcolor @endpoint); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
 	}
-
 	/* horizontal, two colour */
 	.horizontal-gradient( @startcolor, @startpoint, @endcolor, @endpoint ) {
 		background: @startcolor; /* Old browsers */
@@ -88,21 +91,55 @@
 		filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='@startcolor', endColorstr='@endcolor',GradientType=1 ); /* IE6-9 */
 	}
 
-	/* shadow */
-	/* usage: .box-shadow( ~"0 1px 0 red, 0 -1px 0 green" ); or, for modern versions of Less, .box-shadow( 0 1px 0 red, 0 -1px 0 green; ); */
-	.box-shadow( @shadow ) {
-		-webkit-box-shadow: @shadow;
-		box-shadow        : @shadow;
+	/* animations */
+	/*
+		Usage:
+		.keyframes(animname; {
+			0% {
+				height:0;
+			}
+			100% {
+				height:50px;
+			}
+        });
+        .animation(animname 0.8s ease-in);
+	*/
+	.keyframes(@name;
+	@arguments) {
+		@-webkit-keyframes @name {
+			@arguments();
+		}
+		@-moz-keyframes @name {
+			@arguments();
+		}
+		@-ms-keyframes @name {
+			@arguments();
+		}
+		@-o-keyframes @name {
+			@arguments();
+		}
+		@keyframes @name {
+			@arguments();
+		}
+	}
+
+	.animation(@arguments) {
+		-webkit-animation: @arguments;
+		-moz-animation: @arguments;
+		-ms-animation: @arguments;
+		-o-animation: @arguments;
+		animation: @arguments;
 	}
 
 	/* --transforms */
-	.transform( @trans ){
+	.transform( @trans ) {
 		transform: @trans;
 		-ms-transform: @trans;
 		-moz-tranform: @trans;
 		-webkit-transform: @trans;
 		-o-transform: @trans;
 	}
+
 	.transform-origin( @trans ) {
 		transform-origin: @trans;
 		-ms-transform-origin: @trans;
@@ -112,33 +149,169 @@
 	}
 
 	/* usage: .transition( ~"transition, another transition" ); */
-    .transition( @trans ){
-        transition: @trans;
-        -moz-transition: @trans;
-        -webkit-transition: @trans;
-        -o-transition: @trans;
-    }
+	.transition( @trans ) {
+		transition: @trans;
+		-moz-transition: @trans;
+		-webkit-transition: @trans;
+		-o-transition: @trans;
+	}
 
-    .transparency( @trans ){
-        @mstrans: @trans * 100;
-        filter: alpha(opacity=@mstrans);
-        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity="@mstrans")"; /* IE 8 */
-        -moz-opacity: @trans; /* Netscape */
-        -khtml-opacity: @trans; /* Safari 1.x */
-        opacity: @trans; /* Good browsers */
-    }
-
+	.transparency( @trans ) {
+		@mstrans: @trans * 100;
+		filter: alpha(opacity=@mstrans);
+		-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity="@mstrans")"; /* IE 8 */
+		-moz-opacity: @trans; /* Netscape */
+		-khtml-opacity: @trans; /* Safari 1.x */
+		opacity: @trans; /* Good browsers */
+	}
+	
 	/* --box sizing */
-	.border-box {
+	.border-box() {
 		-moz-box-sizing   : border-box;
 		-webkit-box-sizing: border-box;
 		-ms-box-sizing    : border-box;
 		box-sizing        : border-box;
 	}
-	.content-box {
+	.content-box() {
 		-moz-box-sizing   : content-box;
 		-webkit-box-sizing: content-box;
 		-ms-box-sizing    : content-box;
 		box-sizing        : content-box;
 		*behavior         : none;
 	}
+
+	/* set input placeholder colour */
+	.placeholder(@pcolor){
+		::-webkit-input-placeholder {
+		   color: @pcolor;
+		}
+		:-moz-placeholder { /* Firefox 18- */
+		   color: @pcolor;
+		}
+		::-moz-placeholder {  /* Firefox 19+ */
+		   color: @pcolor;
+		}
+		:-ms-input-placeholder {
+		   color: @pcolor;
+		}
+	}
+
+	.no-highlight() {
+		-webkit-tap-highlight-color: rgba(0,0,0,0);
+		-webkit-tap-highlight-color: transparent; /* For some Androids */
+	}
+
+	.no-select() {
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-khtml-user-select: none;
+		-o-user-select: none;
+		user-select: none;
+	}
+	
+	/* CSS columns */
+	.column-count(@count){
+		-webkit-column-count: @count;
+		-moz-column-count: @count;
+		column-count: @count;
+	}
+	/* note does not accept percentage as a valid value */
+	.column-width(@width){
+		-webkit-column-width: @width;
+		-moz-column-width: @width;
+		column-width: @width;
+	}
+	.column-gap(@width){
+		-webkit-column-gap: @width;
+		-moz-column-gap: @width;
+		column-gap: @width;
+	}
+	.break-inside(){
+		-webkit-column-break-inside: avoid;
+		page-break-inside: avoid;
+		break-inside: avoid;
+	}
+
+	/* flexbox */
+	.flex-inline() {
+		display: -moz-box;
+		// display: -ms-inline-flexbox;
+		display: -webkit-inline-flex;
+		display: inline-flex;
+	}
+
+	.flex() {
+		display: -webkit-box;
+		display: -webkit-flex;
+		// display: -ms-flexbox;
+		display: flex;
+		
+		-ms-flex-align: center;
+		-ms-flex-pack: center;
+		-ms-box-orient:horizontal;
+		-moz-box-wrap: nowrap;
+		-webkit-box-wrap: nowrap;
+		-webkit-flex-wrap: nowrap;
+		// -ms-flexbox-wrap: nowrap;
+		// -ms-flex-wrap: nowrap;
+		flex-wrap: nowrap;
+	}
+
+	.flex-direction(@direction) {
+		-moz-box-direction: @direction;
+		-webkit-box-direction: @direction;
+		-webkit-flex-direction: @direction;
+		// -ms-flexbox-direction: @direction;
+		// -ms-flex-direction: @direction;
+		flex-direction: @direction;
+	}
+
+	.justify-content(@position) {
+	    -webkit-box-pack: @position;
+	    -webkit-justify-content: @position;
+	    justify-content: @position;
+	}
+
+	.flex-wrap() {
+	    -moz-box-wrap: wrap;
+	    -webkit-box-wrap: wrap;
+	    -webkit-flex-wrap: wrap;
+	    // -ms-flexbox-wrap: wrap;
+	    // -ms-flex-wrap: wrap;
+	    flex-wrap: wrap;
+	}
+
+	.flex-grow() {
+		-webkit-flex: 1 0 100%;
+		-ms-flex: 1 0 auto;
+		flex: 1 0 100%;
+	}
+
+	.flex-basis(@sets) {
+		webkit-box-basis: @sets;
+		-webkit-flex-basis: @sets;
+		// -ms-flex-basis: @sets;
+		flex-basis: @sets;
+	}
+
+	.align-content(@content) {
+		-webkit-box-align-content: @content;
+		-webkit-align-content: @content;
+		// -ms-flex-align-content: @content;
+		align-content: @content;
+	}
+
+	.align-items(@items) {
+		-webkit-box-align: @items;
+		-webkit-align-items: @items;
+		-moz-box-align: @items;
+		// -ms-flex-align: @items;
+		align-items: @items;
+	}
+
+	.align-self(@self) {
+		display: table-cell;
+		-webkit-align-self: @self; /* Safari 7.0+ */
+		align-self: @self;
+	}
+

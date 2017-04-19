@@ -31,7 +31,6 @@
         /* we want to remove the nojs class as soon as possible on page load */
         document.getElementById("site").className = document.getElementById("site").className.replace(/nojs/i,'');
     </script>
-
     <script src="static/bower_components/angular/angular.min.js"></script>
     <script src="http://maps.google.com/maps/api/js?key=AIzaSyD3USY4bNk_--OTTvMtGwxFxoePLeSih3k"></script>
     <script src="static/js/main.min.js"></script>
@@ -39,52 +38,16 @@
 
 <body>
     <div data-ng-app="peddler" data-ng-controller="peddlerController as p" data-ng-init="init()" id="p">
-    	<div class="mapwrapper">
-	        <div id="map" class="map"></div>
-	    </div>
-        <div class="box gear">
-			<p data-ng-repeat="item in gear">
-				<label><input type="checkbox" data-ng-checked="checkGearPresent(item.id)" data-ng-click="addGear(item.id)"/> {{ item.id }} {{ item.name }}</label>
-			</p>
-			<p>Total weight: {{ weight }}</p>
-		</div>
+		<div id="map" class="map" data-ng-click="menuHandler.showItem('')"></div>
 		
 		<div class="box journey">
 			<div class="progresswrapper">
-				<div class="progress wbike" style="width: {{ (100 - (100 / dests[obj.currdest].dist) * obj.currdestdist)|number:0 }}%;"></div>
+				<div data-ng-class="{'bike': obj.moving, 'rest': obj.moving == 0 && obj.awake, 'sleep': obj.awake == 0 }" class="progress icon" style="width: {{ (100 - (100 / dests[obj.currdest].dist) * obj.currdestdist)|number:0 }}%;"></div>
 				<div class="marker start">
 					{{ prevdest }}, {{ prevcountry }}
 				</div>
 				<div class="marker end">
 					{{ currdest }}, {{ currcountry }}<br/>({{ obj.currdestdist|number:2 }}km, {{ obj.currdesttime / onehour | number:2 }}hrs)
-				</div>
-			</div>
-		</div>
-
-		<div class="box stats">
-	    	<p>Speed: {{ obj.speedkmph * speednerf | number:0 }}kph {{ (obj.speedkmph * speednerf) / 1.60934 | number:0 }}mph</p>
-			<p>Travelled: {{ obj.totaldistkm|number:2 }}km {{ obj.totaldistkm / 1.6|number:2 }} miles</p>
-			<p>Ridden: {{ obj.distkm|number:2 }}km {{ obj.distkm / 1.6|number:2 }} miles</p>
-			<p>Time: {{ obj.totaltime }}</p>
-			<p>Seconds: {{ obj.seconds | number:0 }}</p>
-			<hr/>
-			<p>Awake: {{ obj.awake }}, Moving: {{ obj.moving }}</p>
-			<div data-ng-if="!obj.onplaneboat">
-				<p data-ng-if="obj.moving">Time til rest: {{ obj.tilstop / onehour | number:2 }} hours</p>
-				<div data-ng-if="obj.moving" class="progresswrapper clean">
-					<div class="progress" style="width: {{ (100 - (100 / obj.tilstopstored) * obj.tilstop)|number:0 }}%;"></div>
-				</div>
-				<p data-ng-if="obj.awake">Time til sleep: {{ obj.tilsleep / onehour | number:2 }} hours</p>
-				<div data-ng-if="obj.awake" class="progresswrapper clean">
-					<div class="progress" style="width: {{ (100 - (100 / obj.tilsleepstored) * obj.tilsleep)|number:0 }}%;"></div>
-				</div>
-				<p data-ng-if="!obj.awake">Time til end of sleep: {{ obj.tilwake / onehour | number:2 }} hours</p>
-				<div data-ng-if="!obj.awake" class="progresswrapper clean">
-					<div class="progress" style="width: {{ (100 - (100 / obj.tilwakestored) * obj.tilwake)|number:0 }}%;"></div>
-				</div>
-				<p data-ng-if="!obj.moving && obj.awake">Time til end of rest: {{ obj.tilgo / onehour | number:2 }} hours</p>
-				<div data-ng-if="!obj.awake && obj.awake" class="progresswrapper clean">
-					<div class="progress" style="width: {{ (100 - (100 / obj.tilgostored) * obj.tilgo)|number:0 }}%;"></div>
 				</div>
 			</div>
 		</div>
@@ -103,37 +66,81 @@
 	        <span data-ng-class="obj.timespeed == 500 ? 'btn btn-primary' : 'btn'" data-ng-click="setTimeSpeed(500)">x500</span>
 	        <span class="btn" data-ng-click="pause()">{{ obj.pause === 0 ? "Pause" : "Resume" }}</span>
 		</div>
-
-		<div class="box messages">
-			<ul class="messagecontrols">
-				<li data-ng-repeat="m in messagetypes">
-					<label>
-						<input type="checkbox" data-ng-model="m.show"/>
-						{{ m.name }}
-					</label>
-				</li>
-			</ul>
-			<div class="messagewrap">
-	        	<div data-ng-repeat="message in obj.messages | orderBy:'-'" data-ng-if="messagetypes[message.type].show" class="message">
-	        		{{ message.text }}
-	        		<!-- <span class="btn" data-ng-click="messages.hide(obj.messages.length - $index - 1)">Remove</span> -->
-	        		<span class="datetime">{{ message.datetime }}</span>
-	        	</div>
-	        </div>
-	    </div>
-	    
-	    <div class="box health">
-			<div data-ng-repeat="gear in obj.bike.parts">
-				<p>
-					{{ gear.name }} {{ gear.cond * 100|number:0 }}%
-					<span class="btn btn-small float-right" data-ng-if="gear.cond < 0.99" data-ng-click="partsHandler.fixPart($index)">Fix</span>
-				</p>
-				<div class="progresswrapper clean small">
-					<div class="progress" style="width: {{ gear.cond * 100|number:0 }}%;"></div>
+	    	
+		<div id="menu" class="menubar">
+			<div class="menuitem">
+				<div class="menutrigger" data-ng-click="menuHandler.showItem('menustats')">Stats</div>
+				<div class="menucontent stats">
+					<p>Speed: {{ obj.speedkmph * speednerf | number:0 }}kph {{ (obj.speedkmph * speednerf) / 1.60934 | number:0 }}mph</p>
+					<p>Travelled: {{ obj.totaldistkm|number:2 }}km {{ obj.totaldistkm / 1.6|number:2 }} miles</p>
+					<p>Ridden: {{ obj.distkm|number:2 }}km {{ obj.distkm / 1.6|number:2 }} miles</p>
+					<p>Time: {{ obj.totaltime }}</p>
+					<p>Seconds: {{ obj.seconds | number:0 }}</p>
+					<hr/>
+					<p>Awake: {{ obj.awake }}, Moving: {{ obj.moving }}</p>
+					<div data-ng-if="!obj.onplaneboat">
+						<p data-ng-if="obj.moving">Time til rest: {{ obj.tilstop / onehour | number:2 }} hours</p>
+						<div data-ng-if="obj.moving" class="progresswrapper clean">
+							<div class="progress" style="width: {{ (100 - (100 / obj.tilstopstored) * obj.tilstop)|number:0 }}%;"></div>
+						</div>
+						<p data-ng-if="obj.awake">Time til sleep: {{ obj.tilsleep / onehour | number:2 }} hours</p>
+						<div data-ng-if="obj.awake" class="progresswrapper clean">
+							<div class="progress" style="width: {{ (100 - (100 / obj.tilsleepstored) * obj.tilsleep)|number:0 }}%;"></div>
+						</div>
+						<p data-ng-if="!obj.awake">Time til end of sleep: {{ obj.tilwake / onehour | number:2 }} hours</p>
+						<div data-ng-if="!obj.awake" class="progresswrapper clean">
+							<div class="progress" style="width: {{ (100 - (100 / obj.tilwakestored) * obj.tilwake)|number:0 }}%;"></div>
+						</div>
+						<p data-ng-if="!obj.moving && obj.awake">Time til end of rest: {{ obj.tilgo / onehour | number:2 }} hours</p>
+						<div data-ng-if="!obj.awake && obj.awake" class="progresswrapper clean">
+							<div class="progress" style="width: {{ (100 - (100 / obj.tilgostored) * obj.tilgo)|number:0 }}%;"></div>
+						</div>
+					</div>
 				</div>
 			</div>
-	    </div>
+			<div class="menuitem">
+				<div class="menutrigger" data-ng-click="menuHandler.showItem('menumessages')">Messages</div>
+				<div class="menucontent messages">
+					<ul class="messagecontrols">
+						<li data-ng-repeat="m in messagetypes">
+							<label>
+								<input type="checkbox" data-ng-model="m.show"/>
+								{{ m.name }}
+							</label>
+						</li>
+					</ul>
+					<div class="messagewrap">
+						<div data-ng-repeat="message in obj.messages | orderBy:'-'" data-ng-if="messagetypes[message.type].show" class="message">
+							<span class="msg">{{ message.text }}</span>
+							<span class="datetime">{{ message.datetime }}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="menuitem">
+				<div class="menutrigger" data-ng-click="menuHandler.showItem('menubike')">Bike</div>
+				<div class="menucontent bike">
+					<div data-ng-repeat="gear in obj.bike.parts">
+						<p>
+							{{ gear.name }} {{ gear.cond * 100|number:0 }}%
+							<span class="btn btn-small float-right" data-ng-if="gear.cond < 0.99" data-ng-click="partsHandler.fixPart($index)">Fix</span>
+						</p>
+						<div class="progresswrapper clean small">
+							<div class="progress" style="width: {{ gear.cond * 100|number:0 }}%;"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="menuitem">
+				<div class="menutrigger" data-ng-click="menuHandler.showItem('menugear')">Gear</div>
+				<div class="menucontent gear">
+					<p data-ng-repeat="item in gear">
+						<label><input type="checkbox" data-ng-checked="checkGearPresent(item.id)" data-ng-click="addGear(item.id)"/> {{ item.id }} {{ item.name }}</label>
+					</p>
+					<p>Total weight: {{ weight }}</p>
+				</div>
+			</div>
+		</div>
     </div>
-
 </body>
 </html>

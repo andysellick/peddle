@@ -2,7 +2,7 @@
 //FIXME check distances again for any country that defaults to m not km e.g. australia, india?
 
 //dist is distance from previous location to this one
-//type of 1 is a journey by alternate means, 1 = boat, 2 = flight
+//type is a journey by alternate means, 1 = boat, 2 = flight
 //loc is country this place is in, will output current country location as that of target
 //therefore need to ensure route passes through somewhere either side of every border
 var dests = [

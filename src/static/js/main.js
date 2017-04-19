@@ -675,12 +675,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		create: function(m,datetime,mtype){
 			$scope.obj.messages.push({'text':m,'show':1,'datetime':datetime,'type':mtype});
 		},
-		/* not in use anymore
-		hide: function(i){
-			console.log(i);
-			$scope.obj.messages[i].show = 0;
-		},
-		*/
 		showOfType: function(show){
 			var len = $scope.obj.messages.length;
 			for(var m = 0; m < len; m++){
@@ -912,7 +906,7 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 				origin: points[1],
 				destination: points[0],
 				//travelMode: google.maps.TravelMode.BICYCLING
-				travelMode: google.maps.TravelMode.WALKING
+				travelMode: google.maps.TravelMode.WALKING //walking isn't necessarily an ideal route for a bike, but it's more likely a route will actually appear on the map
 			};
 			var directionsDisplay = new google.maps.DirectionsRenderer({
 				suppressMarkers: true,
@@ -1066,6 +1060,19 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 		}
 		$scope.recalcStuff();
 	};
+	
+	$scope.menuHandler = {
+		showItem: function(clicked){
+			var menuel = document.getElementById('menu');
+			var curr = menuel.dataset.activemenu;
+			if(curr !== clicked){
+				menuel.dataset.activemenu = clicked;
+			}
+			else {
+				menuel.dataset.activemenu = '';
+			}
+		}		
+	};
 
 	//fixme not in use?
 	/*
@@ -1076,6 +1083,6 @@ angular.module('peddler', []).controller('peddlerController',function($scope,$in
 
     $window.onresize = function(){
 		$timeout.cancel($scope.promise);
-		$scope.promise = $timeout(function(){console.log('resize');$scope.doMap();},500);
+		$scope.promise = $timeout(function(){console.log('resize');$scope.doMap();},500); //FIXME resizing doesn't clear any existing lines or routes, so they're getting drawn again
 	};
 });
